@@ -1,0 +1,428 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f8;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+body {
+    padding-bottom: 40px;
+}
+
+header {
+    background: #ffffff;
+    border-bottom: 1px solid #d1d5db;
+    padding: 18px 30px;
+    margin-bottom: 30px;
+}
+
+header div {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+header nav {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+header nav a {
+    display: inline-block;
+    text-decoration: none;
+    color: #1d4ed8;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+header nav a:hover {
+    background: #dbeafe;
+    color: #1e3a8a;
+}
+
+main,
+.container,
+.cards,
+.card-show,
+table,
+form,
+body > div {
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    width: calc(100% - 40px);
+}
+
+a {
+    color: #1d4ed8;
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    color: #1e3a8a;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    text-decoration: none;
+    color: #374151;
+    font-weight: 600;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+
+.back-link:hover {
+    background: #f9fafb;
+}
+
+form {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+form label {
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 18px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+}
+
+form label:first-of-type {
+    margin-top: 0;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 15px;
+    color: #111827;
+    outline: none;
+}
+
+textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+input[type="file"] {
+    padding: 10px;
+    background: #f9fafb;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #2563eb;
+}
+
+button,
+.button,
+input[type="submit"] {
+    display: inline-block;
+    text-decoration: none;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+form button[type="submit"],
+input[type="submit"] {
+    margin-top: 22px;
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
+form button[type="submit"]:hover,
+input[type="submit"]:hover {
+    background: #1e40af;
+}
+
+form p,
+form div {
+    font-size: 14px;
+}
+
+form input + div,
+form input + p,
+form select + div,
+form select + p,
+form textarea + div,
+form textarea + p {
+    margin-top: 6px;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+table {
+    width: calc(100% - 40px);
+    border-collapse: collapse;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+thead {
+    background: #e5e7eb;
+}
+
+th,
+td {
+    padding: 16px 18px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+th {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 700;
+}
+
+td {
+    font-size: 15px;
+}
+
+tbody tr:hover {
+    background: #f9fafb;
+}
+
+td form {
+    display: inline-block;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    margin-left: 8px;
+    width: auto;
+}
+
+td a {
+    display: inline-block;
+    margin-right: 8px;
+    font-weight: 700;
+}
+
+td button {
+    background: #dc2626;
+    color: #ffffff;
+    padding: 9px 14px;
+}
+
+td button:hover {
+    background: #b91c1c;
+}
+
+.action-link {
+    display: inline-block;
+    background: #1d4ed8;
+    color: #ffffff;
+    margin-bottom: 20px;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.action-link:hover {
+    background: #1e40af;
+    color: #ffffff;
+}
+
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    margin-top: 10px;
+}
+
+.card {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.left {
+    flex: 0 0 170px;
+}
+
+.left img,
+#previewImage {
+    width: 100%;
+    max-width: 170px;
+    height: auto;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    object-fit: cover;
+    background: #f3f4f6;
+}
+
+.right {
+    flex: 1;
+    min-width: 0;
+}
+
+.right h1,
+.card h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin-bottom: 10px;
+    color: #111827;
+}
+
+.right h3 {
+    font-size: 15px;
+    font-weight: 400;
+    color: #4b5563;
+    margin-bottom: 16px;
+    word-break: break-word;
+}
+
+.right h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.right > div:last-child {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.right > div:last-child a {
+    display: inline-block;
+    text-decoration: none;
+    background: #1d4ed8;
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.right > div:last-child a:hover {
+    background: #1e40af;
+    color: #ffffff;
+}
+
+.right > div:last-child form {
+    display: inline-block;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    width: auto;
+}
+
+.right > div button {
+    background: #dc2626;
+    color: #ffffff;
+    padding: 10px 16px;
+}
+
+.right > div button:hover {
+    background: #b91c1c;
+}
+
+.card-show {
+    margin-top: 20px;
+}
+
+#previewImage {
+    margin-top: 14px;
+}
+
+p,
+div {
+    word-wrap: break-word;
+}
+
+.form {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    width: auto;
+}
+
+@media (max-width: 768px) {
+    header {
+        padding: 16px 18px;
+    }
+
+    main,
+    .container,
+    .cards,
+    .card-show,
+    table,
+    form,
+    body > div {
+        width: calc(100% - 24px);
+    }
+
+    form {
+        padding: 20px;
+    }
+
+    .card {
+        flex-direction: column;
+    }
+
+    .left {
+        flex: none;
+        width: 100%;
+    }
+
+    .left img,
+    #previewImage {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .right h1,
+    .card h1 {
+        font-size: 24px;
+    }
+
+    th,
+    td {
+        padding: 12px;
+    }
+}
