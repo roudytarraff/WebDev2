@@ -25,7 +25,7 @@ return new class extends Migration
             // password login
             $table->string('password')->nullable();
 
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->enum('status', ['active', 'inactive', 'pending'])->default('pending');
 
             $table->rememberToken();
             $table->timestamps();

@@ -11,14 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('two_factor_auth', function (Blueprint $table) {
+        Schema::create('two_factor_auths', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-
-            $table->enum('method', ['sms','email','app']);
-            $table->string('code_or_secret');
-            $table->boolean('is_enabled')->default(false);
-
+            $table->string('otp_hash');
+            $table->timestamp('expires_at');
             $table->timestamps();
         });
     }

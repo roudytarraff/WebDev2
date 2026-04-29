@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'isconnected' => IsconnectedMiddleware::class,
             'isAdmin' => IsAdminMiddleware::class,
+            'otp' => \App\Http\Middleware\EnsureOtpVerified::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

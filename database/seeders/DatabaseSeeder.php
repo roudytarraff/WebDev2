@@ -2,24 +2,41 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\User;
+use App\Models\Role;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // 1. CREATE ROLES
+        $adminRole = Role::create(['name' => 'admin']);
+        $staffRole = Role::create(['name' => 'staff']);
+        $citizenRole = Role::create(['name' => 'citizen']);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // 2. CREATE ADMIN USER
+        $admin = User::create([
+            'first_name' => 'Admin',
+            'last_name'  => 'User',
+            'email'      => 'admin@example.com',
+            'password'   => Hash::make('password'),
+            'status'     => 'active'
         ]);
+
+        // attach admin role
+        $admin->roles()->attach($adminRole->id);
+
+        // 3. CREATE TEST CITIZEN USER
+        $user = User::create([
+            'first_name' => 'Test',
+            'last_name'  => 'User',
+            'email'      => 'user@example.com',
+            'password'   => Hash::make('password'),
+            'status'     => 'active'
+        ]);
+
+        $user->roles()->attach($citizenRole->id);
     }
 }
