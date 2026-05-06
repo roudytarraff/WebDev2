@@ -36,8 +36,43 @@ class ServiceRequest extends Model
         return $this->belongsTo(Service::class);
     }
 
+    public function assignedTo()
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
     public function statusHistory()
     {
-        return $this->hasMany(RequestStatusHistory::class);
+        return $this->hasMany(RequestStatusHistory::class, 'request_id');
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(RequestDocument::class, 'request_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'request_id');
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'request_id');
+    }
+
+    public function feedback()
+    {
+        return $this->hasOne(Feedback::class, 'request_id');
+    }
+
+    public function chat()
+    {
+        return $this->hasOne(Chat::class, 'request_id');
+    }
+
+    public function generatedDocuments()
+    {
+        return $this->hasMany(GeneratedDocument::class, 'request_id');
     }
 }

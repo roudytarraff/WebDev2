@@ -1,63 +1,68 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login</title>
+        <link rel="stylesheet" href="{{ asset('css/admin-panel.css') }}">
+    </head>
+    <body class="auth-body">
+        <div class="auth-shell">
+            <section class="auth-hero">
+                <div>
+                    <div class="auth-brand-mark">ES</div>
+                    <span class="auth-kicker">Municipal Services</span>
+                    <h1>Public services, handled in one place</h1>
+                    <p>Manage office requests, appointments, payments, feedback, and citizen communication from one secure dashboard.</p>
+                </div>
+            </section>
 
-<body class="bg-light">
+            <section class="auth-panel">
+                <div class="auth-card">
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
+                    <div class="auth-card-header">
+                        <h2>Sign in</h2>
+                        <p>Use your municipal account to continue.</p>
+                    </div>
 
-            <div class="card shadow">
-                <div class="card-body">
-
-                    <h3 class="text-center mb-4">Login</h3>
-
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            @foreach ($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('auth.connect') }}">
+                    <form method="POST" action="{{ route('auth.connect') }}" class="resource-form">
                         @csrf
 
-                        <div class="mb-3">
-                            <label>Email</label>
-                            <input type="email" name="email" class="form-control">
-                            @error('email') <small class="text-danger">{{ $message }}</small> @enderror
+                        <div class="form-grid form-grid-single">
+                            <div class="form-field">
+                                <label class="form-label">Email</label>
+                                <input class="form-control" type="email" name="email" value="{{ old('email') }}">
+                                @error('email')
+                                    <p class="form-error">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="form-field">
+                                <label class="form-label">Password</label>
+                                <input class="form-control" type="password" name="password">
+                                @error('password')
+                                    <p class="form-error">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <label class="auth-remember">
+                                <input type="checkbox" name="remember" value="1" checked>
+                                Remember me on this browser
+                            </label>
                         </div>
 
-                        <div class="mb-3">
-                            <label>Password</label>
-                            <input type="password" name="password" class="form-control">
-                        </div>
-
-                        <button class="btn btn-primary w-100">Login</button>
+                        <button class="admin-primary-button auth-primary-button">Sign in</button>
                     </form>
 
-                    <hr>
+                    <div class="auth-divider"><span>or</span></div>
 
-                    <a href="{{ route('google.redirect') }}" class="btn btn-danger w-100">
-                        Login with Google
-                    </a>
+                    <a href="{{ route('google.redirect') }}" class="admin-ghost-button auth-full-button">Continue with Google</a>
 
-                    <p class="text-center mt-3">
-                        No account?
-                        <a href="{{ route('auth.register') }}">Register</a>
+                    <p class="auth-footer-link">
+                        No account yet?
+                        <a href="{{ route('auth.register') }}">Create one</a>
                     </p>
-
                 </div>
-            </div>
-
+            </section>
         </div>
-    </div>
-</div>
-
-</body>
+    </body>
 </html>

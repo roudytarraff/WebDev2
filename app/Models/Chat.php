@@ -23,7 +23,7 @@ class Chat extends Model
 
     public function messages()
     {
-        return $this->hasMany(ChatMessage::class);
+        return $this->hasMany(ChatMessage::class, 'chat_id');
     }
 
     public function citizen()

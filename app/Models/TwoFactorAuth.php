@@ -13,4 +13,9 @@ class TwoFactorAuth extends Model
         'otp_hash',
         'expires_at'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

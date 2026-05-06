@@ -1,78 +1,78 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Register</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Register</title>
+        <link rel="stylesheet" href="{{ asset('css/admin-panel.css') }}">
+    </head>
+    <body class="auth-body">
+        <div class="auth-shell">
+            <section class="auth-hero">
+                <div>
+                    <div class="auth-brand-mark">ES</div>
+                    <span class="auth-kicker">Citizen Access</span>
+                    <h1>Start your digital services account</h1>
+                    <p>Create one account to request municipal services, upload documents, track status, and receive updates.</p>
+                </div>
+            </section>
 
-<body class="bg-light">
+            <section class="auth-panel">
+                <div class="auth-card">
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
+                    <div class="auth-card-header">
+                        <h2>Create your account</h2>
+                        <p>Register once, then verify your email with the one-time passcode.</p>
+                    </div>
 
-            <div class="card shadow">
-                <div class="card-body">
-
-                    <h3 class="text-center mb-4">Register</h3>
-
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            @foreach ($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('auth.create') }}">
+                    <form method="POST" action="{{ route('auth.create') }}" class="resource-form">
                         @csrf
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label>First Name</label>
-                                <input name="first_name" class="form-control">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label class="form-label">First Name</label>
+                                <input class="form-control" name="first_name" value="{{ old('first_name') }}">
+                                @error('first_name') <p class="form-error">{{ $message }}</p> @enderror
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label>Last Name</label>
-                                <input name="last_name" class="form-control">
+                            <div class="form-field">
+                                <label class="form-label">Last Name</label>
+                                <input class="form-control" name="last_name" value="{{ old('last_name') }}">
+                                @error('last_name') <p class="form-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="form-field">
+                                <label class="form-label">Email</label>
+                                <input class="form-control" type="email" name="email" value="{{ old('email') }}">
+                                @error('email') <p class="form-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="form-field">
+                                <label class="form-label">Phone</label>
+                                <input class="form-control" name="phone" value="{{ old('phone') }}">
+                                @error('phone') <p class="form-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="form-field">
+                                <label class="form-label">Password</label>
+                                <input class="form-control" type="password" name="password">
+                                @error('password') <p class="form-error">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="form-field">
+                                <label class="form-label">Confirm Password</label>
+                                <input class="form-control" type="password" name="password_confirmation">
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label>Email</label>
-                            <input name="email" class="form-control">
-                        </div>
-
-                        <div class="mb-3">
-                            <label>Phone</label>
-                            <input name="phone" class="form-control">
-                        </div>
-
-                        <div class="mb-3">
-                            <label>Password</label>
-                            <input type="password" name="password" class="form-control">
-                        </div>
-
-                        <div class="mb-3">
-                            <label>Confirm Password</label>
-                            <input type="password" name="password_confirmation" class="form-control">
-                        </div>
-
-                        <button class="btn btn-success w-100">Register</button>
+                        <button class="admin-primary-button auth-primary-button">Create account</button>
                     </form>
 
-                    <p class="text-center mt-3">
-                        Already have account?
-                        <a href="{{ route('auth.login') }}">Login</a>
+                    <p class="auth-footer-link">
+                        Already have an account?
+                        <a href="{{ route('auth.login') }}">Sign in</a>
                     </p>
-
                 </div>
-            </div>
-
+            </section>
         </div>
-    </div>
-</div>
-
-</body>
+    </body>
 </html>
