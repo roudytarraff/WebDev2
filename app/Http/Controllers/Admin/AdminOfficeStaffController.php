@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Municipality;
 use App\Models\Office;
 use App\Models\OfficeStaff;
 use App\Models\Role;
+use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,10 +15,44 @@ use Illuminate\Validation\Rule;
 
 class AdminOfficeStaffController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $staff = OfficeStaff::with(['office.municipality', 'user'])->orderBy('office_id')->get();
-        return view('admin.office_staff.index', compact('staff'));
+        $search = $request->query('search');
+        $officeId = $request->query('office_id');
+        $municipalityId = $request->query('municipality_id');
+        $status = $request->query('status');
+        $jobTitle = $request->query('job_title');
+
+        $staff = OfficeStaff::with(['office.municipality', 'user'])
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($innerQuery) use ($search) {
+                    $innerQuery->where('job_title', 'like', '%' . $search . '%')
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->where('first_name', 'like', '%' . $search . '%')
+                                ->orWhere('last_name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%')
+                                ->orWhere('phone', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('office', function ($officeQuery) use ($search) {
+                            $officeQuery->where('name', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($officeId, fn ($query) => $query->where('office_id', $officeId))
+            ->when($municipalityId, function ($query) use ($municipalityId) {
+                $query->whereHas('office', fn ($officeQuery) => $officeQuery->where('municipality_id', $municipalityId));
+            })
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($jobTitle, fn ($query) => $query->where('job_title', $jobTitle))
+            ->orderBy('office_id')
+            ->get();
+
+        $offices = Office::orderBy('name')->get();
+        $municipalities = Municipality::orderBy('name')->get();
+        $jobTitles = OfficeStaff::select('job_title')->distinct()->orderBy('job_title')->pluck('job_title');
+        $filters = compact('search', 'officeId', 'municipalityId', 'status', 'jobTitle');
+
+        return view('admin.office_staff.index', compact('staff', 'offices', 'municipalities', 'jobTitles', 'filters'));
     }
 
     public function create()
@@ -82,8 +118,28 @@ class AdminOfficeStaffController extends Controller
 
     public function show(string $id)
     {
-        $staff = OfficeStaff::with(['office.municipality', 'user.roles'])->findOrFail($id);
-        return view('admin.office_staff.show', compact('staff'));
+        $staff = OfficeStaff::with(['office.municipality', 'office.address', 'user.roles'])->findOrFail($id);
+        $activeStatuses = ['pending', 'approved', 'in_progress'];
+
+        $requestStats = [
+            'total' => ServiceRequest::where('assigned_to_user_id', $staff->user_id)->count(),
+            'active' => ServiceRequest::where('assigned_to_user_id', $staff->user_id)->whereIn('status', $activeStatuses)->count(),
+            'completed' => ServiceRequest::where('assigned_to_user_id', $staff->user_id)->where('status', 'completed')->count(),
+            'rejected' => ServiceRequest::where('assigned_to_user_id', $staff->user_id)->where('status', 'rejected')->count(),
+        ];
+
+        $recentRequests = ServiceRequest::with(['citizen', 'service'])
+            ->where('assigned_to_user_id', $staff->user_id)
+            ->latest()
+            ->take(8)
+            ->get();
+
+        $otherOfficeAssignments = OfficeStaff::with('office.municipality')
+            ->where('user_id', $staff->user_id)
+            ->where('id', '!=', $staff->id)
+            ->get();
+
+        return view('admin.office_staff.show', compact('staff', 'requestStats', 'recentRequests', 'otherOfficeAssignments'));
     }
 
     public function edit(string $id)
