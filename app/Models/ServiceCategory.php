@@ -17,6 +17,11 @@ class ServiceCategory extends Model
 
     public function services()
     {
-        return $this->hasMany(Service::class);
+        return $this->hasMany(Service::class, 'category_id');
+    }
+
+    public function office()
+    {
+        return $this->belongsTo(Office::class);
     }
 }

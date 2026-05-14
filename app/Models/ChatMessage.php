@@ -17,6 +17,10 @@ class ChatMessage extends Model
         'sent_at'
     ];
 
+    protected $casts = [
+        'sent_at' => 'datetime',
+    ];
+
     public function chat()
     {
         return $this->belongsTo(Chat::class);
