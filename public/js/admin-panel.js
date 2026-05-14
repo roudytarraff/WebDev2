@@ -1,5 +1,3 @@
-import './bootstrap';
-
 document.addEventListener('click', (event) => {
     const deleteTrigger = event.target.closest('[data-confirm-delete]');
 
@@ -7,19 +5,17 @@ document.addEventListener('click', (event) => {
         event.preventDefault();
     }
 
-    const openButton = event.target.closest('[data-sidebar-open]');
-    const closeButton = event.target.closest('[data-sidebar-close]');
     const sidebar = document.getElementById('adminSidebar');
 
     if (! sidebar) {
         return;
     }
 
-    if (openButton) {
+    if (event.target.closest('[data-sidebar-open]')) {
         sidebar.classList.add('is-open');
     }
 
-    if (closeButton) {
+    if (event.target.closest('[data-sidebar-close]')) {
         sidebar.classList.remove('is-open');
     }
 });

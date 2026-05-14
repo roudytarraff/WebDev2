@@ -10,4 +10,378 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+@layer base {
+    :root {
+        --page-bg: #f4f7fb;
+        --panel-bg: rgba(255, 255, 255, 0.94);
+        --panel-border: rgba(15, 23, 42, 0.08);
+        --text-main: #10233f;
+        --text-soft: #5e708e;
+        --brand: #0f8b8d;
+        --brand-dark: #0b5960;
+        --accent: #f4a261;
+        --danger: #d1495b;
+        --success: #2a9d8f;
+        --shadow: 0 24px 60px rgba(20, 33, 61, 0.12);
+    }
 
+    body {
+        color: var(--text-main);
+        background:
+            radial-gradient(circle at top left, rgba(15, 139, 141, 0.18), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(244, 162, 97, 0.18), transparent 24%),
+            var(--page-bg);
+    }
+}
+
+@layer components {
+    .admin-body,
+    .auth-body {
+        @apply min-h-screen;
+    }
+
+    .admin-shell {
+        @apply flex min-h-screen;
+    }
+
+    .admin-sidebar {
+        @apply fixed inset-y-0 left-0 z-30 w-72 -translate-x-full border-r px-5 py-6 transition-transform lg:static lg:translate-x-0;
+        background: rgba(11, 27, 53, 0.96);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: white;
+        backdrop-filter: blur(18px);
+    }
+
+    .admin-sidebar.is-open {
+        @apply translate-x-0;
+    }
+
+    .admin-brand {
+        @apply mb-8 flex items-start justify-between gap-4;
+    }
+
+    .admin-brand h1 {
+        @apply text-2xl font-semibold;
+    }
+
+    .admin-eyebrow,
+    .admin-page-kicker,
+    .panel-kicker,
+    .auth-kicker {
+        @apply text-xs font-semibold uppercase tracking-[0.32em];
+        color: var(--accent);
+    }
+
+    .admin-sidebar-close,
+    .admin-menu-button {
+        @apply rounded-full border px-3 py-1 text-sm lg:hidden;
+        border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .admin-nav {
+        @apply flex flex-col gap-6;
+    }
+
+    .admin-nav-group {
+        @apply flex flex-col gap-2;
+    }
+
+    .admin-nav-label {
+        @apply mb-1 text-xs font-semibold uppercase tracking-[0.28em] text-white/50;
+    }
+
+    .admin-nav-link {
+        @apply rounded-2xl px-4 py-3 text-sm font-medium transition;
+        color: rgba(255, 255, 255, 0.74);
+    }
+
+    .admin-nav-link:hover,
+    .admin-nav-link.is-active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .admin-main {
+        @apply min-h-screen flex-1 lg:ml-0;
+    }
+
+    .admin-topbar {
+        @apply sticky top-0 z-20 flex flex-col gap-4 border-b px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-10;
+        background: rgba(244, 247, 251, 0.86);
+        border-color: rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(18px);
+    }
+
+    .admin-topbar h2,
+    .panel-card h3,
+    .auth-card h2 {
+        @apply text-2xl font-semibold;
+    }
+
+    .admin-topbar-actions,
+    .toolbar-actions,
+    .form-actions {
+        @apply flex flex-wrap items-center gap-3;
+    }
+
+    .admin-user-chip {
+        @apply rounded-full px-4 py-2 text-sm font-medium;
+        background: rgba(15, 139, 141, 0.1);
+        color: var(--brand-dark);
+    }
+
+    .admin-content {
+        @apply space-y-6 px-4 py-6 sm:px-6 lg:px-10;
+    }
+
+    .dashboard-grid {
+        @apply grid gap-4 md:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .stat-card,
+    .panel-card,
+    .detail-card {
+        @apply rounded-[28px] border p-5;
+        background: var(--panel-bg);
+        border-color: var(--panel-border);
+        box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+        @apply mt-3 text-4xl font-semibold;
+    }
+
+    .stat-helper,
+    .list-meta,
+    .detail-label,
+    .empty-state-text {
+        color: var(--text-soft);
+    }
+
+    .content-grid {
+        @apply grid gap-6 xl:grid-cols-[1.3fr_0.9fr];
+    }
+
+    .panel-card-header {
+        @apply mb-5 flex items-start justify-between gap-4;
+    }
+
+    .panel-card-header-wrap {
+        @apply flex-col sm:flex-row sm:items-center;
+    }
+
+    .table-wrap {
+        @apply overflow-x-auto;
+    }
+
+    .admin-table {
+        @apply min-w-full text-left text-sm;
+    }
+
+    .admin-table th {
+        @apply border-b px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em];
+        color: var(--text-soft);
+        border-color: rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-table td {
+        @apply border-b px-4 py-4 align-top;
+        border-color: rgba(15, 23, 42, 0.06);
+    }
+
+    .table-actions {
+        @apply flex flex-wrap justify-end gap-2;
+    }
+
+    .status-badge {
+        @apply inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize;
+        background: rgba(15, 139, 141, 0.12);
+        color: var(--brand-dark);
+    }
+
+    .admin-primary-button,
+    .admin-ghost-button,
+    .admin-link-button,
+    .admin-danger-button {
+        @apply inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition;
+    }
+
+    .admin-primary-button {
+        background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+        color: white;
+    }
+
+    .admin-ghost-button,
+    .admin-link-button {
+        @apply border;
+        border-color: rgba(15, 23, 42, 0.12);
+        color: var(--text-main);
+        background: white;
+    }
+
+    .admin-danger-button {
+        color: white;
+        background: var(--danger);
+    }
+
+    .toolbar-grid,
+    .form-grid {
+        @apply grid gap-4 md:grid-cols-2;
+    }
+
+    .form-grid-single {
+        @apply grid-cols-1;
+    }
+
+    .resource-form {
+        @apply space-y-5;
+    }
+
+    .form-field {
+        @apply space-y-2;
+    }
+
+    .form-label {
+        @apply text-sm font-semibold;
+    }
+
+    .form-control {
+        @apply w-full rounded-2xl border px-4 py-3 outline-none transition;
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(15, 23, 42, 0.12);
+    }
+
+    .form-control:focus {
+        border-color: rgba(15, 139, 141, 0.48);
+        box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.12);
+    }
+
+    .form-control.is-invalid {
+        border-color: rgba(209, 73, 91, 0.48);
+        box-shadow: 0 0 0 4px rgba(209, 73, 91, 0.12);
+    }
+
+    .form-checkbox {
+        @apply flex items-center gap-3 rounded-2xl border px-4 py-3;
+        border-color: rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-error {
+        @apply text-sm font-medium;
+        color: var(--danger);
+    }
+
+    .details-grid {
+        @apply grid gap-4 md:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .detail-value {
+        @apply mt-2 font-medium break-words;
+    }
+
+    .flash-message {
+        @apply rounded-2xl border px-4 py-3 text-sm font-medium;
+        box-shadow: var(--shadow);
+    }
+
+    .flash-success {
+        background: rgba(42, 157, 143, 0.12);
+        border-color: rgba(42, 157, 143, 0.24);
+        color: #16695f;
+    }
+
+    .flash-error {
+        background: rgba(209, 73, 91, 0.12);
+        border-color: rgba(209, 73, 91, 0.24);
+        color: #992436;
+    }
+
+    .pagination-wrap {
+        @apply pt-4;
+    }
+
+    .list-stack {
+        @apply space-y-3;
+    }
+
+    .list-row {
+        @apply flex items-center justify-between gap-4 rounded-2xl border px-4 py-3;
+        border-color: rgba(15, 23, 42, 0.08);
+        background: rgba(255, 255, 255, 0.82);
+    }
+
+    .list-title {
+        @apply font-semibold;
+    }
+
+    .empty-state-cell {
+        @apply py-10 text-center;
+        color: var(--text-soft);
+    }
+
+    .auth-shell {
+        @apply grid min-h-screen lg:grid-cols-[1.05fr_0.95fr];
+    }
+
+    .auth-hero {
+        @apply hidden px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between;
+        background:
+            radial-gradient(circle at top left, rgba(244, 162, 97, 0.32), transparent 22%),
+            linear-gradient(150deg, #0b1b35, #12335f 56%, #0f8b8d);
+    }
+
+    .auth-hero h1 {
+        @apply max-w-xl text-5xl leading-tight font-semibold;
+    }
+
+    .auth-hero p:last-child {
+        @apply max-w-lg text-lg text-white/76;
+    }
+
+    .auth-panel {
+        @apply flex items-center justify-center px-4 py-8 sm:px-6;
+    }
+
+    .auth-card {
+        @apply w-full max-w-2xl rounded-[32px] border p-6 sm:p-8;
+        background: var(--panel-bg);
+        border-color: var(--panel-border);
+        box-shadow: var(--shadow);
+    }
+
+    .auth-card-header {
+        @apply mb-6;
+    }
+
+    .auth-card-header p,
+    .auth-footer-link {
+        color: var(--text-soft);
+    }
+
+    .auth-divider {
+        @apply my-6 flex items-center gap-4 text-sm;
+        color: var(--text-soft);
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+        @apply h-px flex-1 content-[''];
+        background: rgba(15, 23, 42, 0.08);
+    }
+
+    .auth-actions {
+        @apply justify-between;
+    }
+
+    .auth-primary-button,
+    .auth-full-button {
+        @apply w-full;
+    }
+
+    @media (max-width: 1023px) {
+        .admin-main {
+            @apply w-full;
+        }
+    }
+}
