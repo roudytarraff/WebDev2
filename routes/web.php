@@ -24,9 +24,7 @@ use App\Http\Controllers\Office\OfficeWorkingHourController;
 use App\Http\Controllers\TrackingController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/login');
 
 Route::get('register', [AuthController::class, 'register'])->name('auth.register');
 Route::post('register', [AuthController::class, 'create'])->name('auth.create');

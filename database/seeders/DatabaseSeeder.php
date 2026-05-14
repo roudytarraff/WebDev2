@@ -26,6 +26,7 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
 use App\Models\ServiceRequiredDocument;
 use App\Models\User;
+use App\Services\RequestAssignmentService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -37,6 +38,7 @@ class DatabaseSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $staffRole = Role::firstOrCreate(['name' => 'staff']);
         $citizenRole = Role::firstOrCreate(['name' => 'citizen']);
+        $assignmentService = app(RequestAssignmentService::class);
 
         $admin = User::updateOrCreate(['email' => 'admin@eservices.test'], [
             'first_name' => 'Admin',
@@ -202,7 +204,7 @@ class DatabaseSeeder extends Seeder
             'citizen_user_id' => $citizen->id,
             'office_id' => $civilOffice->id,
             'service_id' => $birthCertificate->id,
-            'assigned_to_user_id' => $staff->id,
+            'assigned_to_user_id' => $assignmentService->assignToStaff($birthCertificate),
             'status' => 'in_progress',
             'description' => 'Citizen requested a birth certificate for university paperwork.',
             'qr_code' => 'QR-REQ-2026-0001',
@@ -394,6 +396,34 @@ class DatabaseSeeder extends Seeder
             }
         }
 
+        $balancedStaffTitles = [
+            ['first_name' => 'Rana', 'last_name' => 'Barakat', 'job_title' => 'Records Officer'],
+            ['first_name' => 'Michel', 'last_name' => 'Haddad', 'job_title' => 'Payment Officer'],
+            ['first_name' => 'Lina', 'last_name' => 'Khalil', 'job_title' => 'Appointments Officer'],
+            ['first_name' => 'Youssef', 'last_name' => 'Nader', 'job_title' => 'Service Coordinator'],
+            ['first_name' => 'Nadine', 'last_name' => 'Sayegh', 'job_title' => 'Permits Supervisor'],
+            ['first_name' => 'Ralph', 'last_name' => 'Awad', 'job_title' => 'Inspection Coordinator'],
+        ];
+
+        foreach ($allOffices as $office) {
+            foreach ($balancedStaffTitles as $staffIndex => $staffInfo) {
+                $email = 'office' . $office->id . '.staff' . ($staffIndex + 1) . '@eservices.test';
+                $demoStaff = User::updateOrCreate(['email' => $email], [
+                    'first_name' => $staffInfo['first_name'],
+                    'last_name' => $staffInfo['last_name'],
+                    'phone' => '7200' . str_pad((string) ($office->id * 10 + $staffIndex), 4, '0', STR_PAD_LEFT),
+                    'password' => Hash::make('password'),
+                    'status' => 'active',
+                ]);
+                $demoStaff->roles()->syncWithoutDetaching([$staffRole->id]);
+
+                OfficeStaff::updateOrCreate(['office_id' => $office->id, 'user_id' => $demoStaff->id], [
+                    'job_title' => $staffInfo['job_title'],
+                    'status' => 'active',
+                ]);
+            }
+        }
+
         $serviceTemplates = [
             ['category' => 'Civil Documents', 'name' => 'Marriage Certificate', 'price' => 12, 'appointment' => false, 'documents' => ['National ID', 'Family Record Extract', 'Marriage Record Number']],
             ['category' => 'Civil Documents', 'name' => 'Family Record Extract', 'price' => 8, 'appointment' => false, 'documents' => ['National ID', 'Mukhtar Statement']],
@@ -470,7 +500,7 @@ class DatabaseSeeder extends Seeder
             $office = $service->office;
             $demoCitizen = $citizens[$requestCounter % $citizens->count()];
             $status = $statuses[$requestCounter % count($statuses)];
-            $assignedUserId = $office->staff()->where('status', 'active')->value('user_id');
+            $assignedUserId = $assignmentService->assignToStaff($service);
 
             $demoRequest = ServiceRequest::updateOrCreate(['request_number' => $requestNumber], [
                 'citizen_user_id' => $demoCitizen->id,
@@ -753,6 +783,25 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        foreach ($allOffices as $office) {
+            foreach ($balancedStaffTitles as $staffIndex => $staffInfo) {
+                $email = 'office' . $office->id . '.staff' . ($staffIndex + 1) . '@eservices.test';
+                $demoStaff = User::updateOrCreate(['email' => $email], [
+                    'first_name' => $staffInfo['first_name'],
+                    'last_name' => $staffInfo['last_name'],
+                    'phone' => '7200' . str_pad((string) ($office->id * 10 + $staffIndex), 4, '0', STR_PAD_LEFT),
+                    'password' => Hash::make('password'),
+                    'status' => 'active',
+                ]);
+                $demoStaff->roles()->syncWithoutDetaching([$staffRole->id]);
+
+                OfficeStaff::updateOrCreate(['office_id' => $office->id, 'user_id' => $demoStaff->id], [
+                    'job_title' => $staffInfo['job_title'],
+                    'status' => 'active',
+                ]);
+            }
+        }
+
         $expandedServiceTemplates = [
             ['category' => 'Citizen Services', 'name' => 'Residence Certificate', 'price' => 7, 'appointment' => false, 'documents' => ['National ID', 'Lease Contract', 'Utility Bill']],
             ['category' => 'Citizen Services', 'name' => 'Address Change Request', 'price' => 5, 'appointment' => false, 'documents' => ['National ID', 'Proof of Address']],
@@ -813,8 +862,7 @@ class DatabaseSeeder extends Seeder
             $requestNumber = 'REQ-2026-X' . str_pad((string) ($serviceIndex + 1), 4, '0', STR_PAD_LEFT);
             $office = $service->office;
             $demoCitizen = $citizens[$serviceIndex % $citizens->count()];
-            $assignedUserId = $office->staff()->where('status', 'active')->skip($serviceIndex % 2)->value('user_id')
-                ?: $office->staff()->where('status', 'active')->value('user_id');
+            $assignedUserId = $assignmentService->assignToStaff($service);
             $status = $expandedStatuses[$serviceIndex % count($expandedStatuses)];
 
             $demoRequest = ServiceRequest::updateOrCreate(['request_number' => $requestNumber], [

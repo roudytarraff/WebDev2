@@ -73,7 +73,7 @@
                         </div>
 
                         <div>
-                            <label>Assign To</label>
+                            <label>Assign / Reassign To</label>
                             <select name="assigned_to_user_id">
                                 <option value="">Unassigned</option>
                                 @foreach($staffUsers as $staff)
