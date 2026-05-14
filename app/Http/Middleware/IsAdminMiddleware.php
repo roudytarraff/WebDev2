@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,12 +17,17 @@ class IsAdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(Auth::check())
-            if(Auth::user()->role=='Admin')
-                return $next($request);
-            else
-                abort(403);
-        else 
+        if (! Auth::check()) {
             return abort(401);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $user->isAdmin()) {
+            abort(403);
+        }
+
+        return $next($request);
     }
 }

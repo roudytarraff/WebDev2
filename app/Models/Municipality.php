@@ -20,4 +20,9 @@ class Municipality extends Model
     {
         return $this->hasMany(Office::class);
     }
+
+    public function address()
+    {
+        return $this->belongsTo(Address::class);
+    }
 }

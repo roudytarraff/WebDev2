@@ -11,6 +11,7 @@ class ServiceRequiredDocument extends Model
 
     protected $fillable = [
         'service_id',
+        'document_type_id',
         'document_name',
         'is_required'
     ];
@@ -18,5 +19,10 @@ class ServiceRequiredDocument extends Model
     public function service()
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function documentType()
+    {
+        return $this->belongsTo(DocumentType::class);
     }
 }
