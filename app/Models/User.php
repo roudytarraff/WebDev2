@@ -53,7 +53,37 @@ class User extends Authenticatable
 
      public function roles()
     {
-        return $this->belongsToMany(Role::class);
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', strtolower($roleName))->exists();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isOfficeStaff(): bool
+    {
+        return $this->hasRole('staff') || $this->officeStaff()->where('status', 'active')->exists();
+    }
+
+    public function officeStaff()
+    {
+        return $this->hasMany(OfficeStaff::class);
+    }
+
+    public function activeOfficeStaff()
+    {
+        return $this->hasOne(OfficeStaff::class)->where('status', 'active');
     }
 
     public function socialAccounts()

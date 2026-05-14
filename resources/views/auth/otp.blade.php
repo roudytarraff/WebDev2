@@ -1,47 +1,55 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>OTP Verification</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify OTP</title>
+        <link rel="stylesheet" href="{{ asset('css/admin-panel.css') }}">
+    </head>
+    <body class="auth-body">
+        <div class="auth-shell">
+            <section class="auth-hero">
+                <div>
+                    <div class="auth-brand-mark">ES</div>
+                    <span class="auth-kicker">Security Check</span>
+                    <h1>One more quick check</h1>
+                    <p>OTP verification keeps public service records protected before opening the platform.</p>
+                </div>
+            </section>
 
-<body class="bg-light">
+            <section class="auth-panel">
+                <div class="auth-card">
+                    <div class="back-row">
+                        <a href="{{ route('auth.login') }}" class="button secondary">Back</a>
+                    </div>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
+                    <div class="auth-card-header">
+                        <h2>Verify your one-time code</h2>
+                        <p>Enter the 6-digit code sent to your email.</p>
+                    </div>
 
-            <div class="card shadow">
-                <div class="card-body">
-
-                    <h4 class="text-center">Verify OTP</h4>
-
-                    <p class="text-muted text-center">
-                        We sent a code to your email
-                    </p>
-
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            @foreach ($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
+                    @if(session('demo_otp'))
+                        <div class="admin-alert admin-alert-success">
+                            Demo OTP: <strong>{{ session('demo_otp') }}</strong>
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('otp.verify') }}">
+                    <form method="POST" action="{{ route('otp.verify') }}" class="resource-form">
                         @csrf
 
-                        <input name="otp" class="form-control text-center mb-3" placeholder="6-digit code">
+                        <div class="form-grid form-grid-single">
+                            <div class="form-field">
+                                <label class="form-label">OTP</label>
+                                <input class="form-control" name="otp" value="{{ old('otp') }}">
+                                @error('otp')
+                                    <p class="form-error">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
 
-                        <button class="btn btn-primary w-100">Verify</button>
+                        <button class="admin-primary-button auth-primary-button">Verify code</button>
                     </form>
-
                 </div>
-            </div>
-
+            </section>
         </div>
-    </div>
-</div>
-
-</body>
+    </body>
 </html>

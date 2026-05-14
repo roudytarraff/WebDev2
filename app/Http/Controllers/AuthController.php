@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Mail\TwoFactorOtpMail;
 use App\Models\SocialAccount;
+use App\Models\User;
 use App\Models\TwoFactorAuth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\TwoFactorOtpMail;
-use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -28,17 +32,13 @@ class AuthController extends Controller
     }
 
     /* ================= LOGIN ================= */
-    public function connect(Request $request)
+    public function connect(LoginRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-
         if (!Auth::attempt($request->only('email', 'password'))) {
             return back()->withErrors(['email' => 'Invalid credentials']);
         }
 
+        /** @var User $user */
         $user = Auth::user();
         Auth::logout();
 
@@ -46,16 +46,8 @@ class AuthController extends Controller
     }
 
     /* ================= REGISTER ================= */
-    public function create(Request $request)
+    public function create(RegisterRequest $request)
     {
-        $request->validate([
-            'first_name' => 'required',
-            'last_name'  => 'required',
-            'email'      => 'required|email|unique:users',
-            'phone'      => 'required',
-            'password'   => 'required|confirmed'
-        ]);
-
         $user = User::create([
             'first_name' => $request->first_name,
             'last_name'  => $request->last_name,
@@ -65,20 +57,19 @@ class AuthController extends Controller
             'status'     => 'pending'
         ]);
 
-        Auth::login($user);
-
         return $this->sendOtp($user);
     }
 
     /* ================= GOOGLE LOGIN ================= */
     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     public function handleGoogleCallback()
     {
         $googleUser = Socialite::driver('google')
+            ->stateless()
             ->user();
 
         $account = SocialAccount::where('provider', 'google')
@@ -114,7 +105,7 @@ class AuthController extends Controller
     }
 
     /* ================= SEND OTP ================= */
-    private function sendOtp($user)
+    private function sendOtp(User $user)
     {
         $otp = rand(100000, 999999);
 
@@ -124,11 +115,16 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(10)
         ]);
 
-        Mail::to($user->email)->send(new TwoFactorOtpMail($otp));
+        try {
+            Mail::to($user->email)->send(new TwoFactorOtpMail($otp));
+        } catch (\Throwable $exception) {
+            Log::warning('OTP email could not be sent: '.$exception->getMessage());
+        }
 
         session([
             'otp_user_id' => $user->id,
-            'otp_verified' => false
+            'otp_verified' => false,
+            'demo_otp' => $otp,
         ]);
 
         return redirect()->route('otp.form');
@@ -141,12 +137,8 @@ class AuthController extends Controller
     }
 
     /* ================= VERIFY OTP ================= */
-    public function verifyOtp(Request $request)
+    public function verifyOtp(VerifyOtpRequest $request)
     {
-        $request->validate([
-            'otp' => 'required'
-        ]);
-
         $userId = session('otp_user_id');
 
         $otp = TwoFactorAuth::where('user_id', $userId)
@@ -158,13 +150,25 @@ class AuthController extends Controller
             return back()->withErrors(['otp' => 'Invalid OTP']);
         }
 
-        Auth::loginUsingId($userId);
+        Auth::loginUsingId($userId, true);
 
         session([
             'otp_verified' => true
         ]);
 
         session()->forget('otp_user_id');
+        session()->forget('demo_otp');
+
+        /** @var User $authenticatedUser */
+        $authenticatedUser = Auth::user();
+
+        if ($authenticatedUser->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($authenticatedUser->isOfficeStaff()) {
+            return redirect()->route('office.dashboard');
+        }
 
         return redirect()->route('home');
     }

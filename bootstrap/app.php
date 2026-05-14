@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\IsAdminMiddleware;
+use App\Http\Middleware\IsOfficeStaffMiddleware;
 use App\Http\Middleware\IsconnectedMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'isconnected' => IsconnectedMiddleware::class,
             'isAdmin' => IsAdminMiddleware::class,
+            'isOfficeStaff' => IsOfficeStaffMiddleware::class,
             'otp' => \App\Http\Middleware\EnsureOtpVerified::class,
         ]);
     })

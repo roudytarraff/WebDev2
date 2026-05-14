@@ -1,16 +1,23 @@
-<div>
-    <nav>
-    
-        <a href="#">Add Later</a>
-    
+<input type="checkbox" id="navToggle" class="nav-toggle">
+<label for="navToggle" class="hamburger">Menu</label>
 
+<aside class="sidebar">
+    @auth
+        <a class="brand" href="{{ route('admin.dashboard') }}">Admin Panel</a>
 
-        @guest
-            <a href="{{ route('auth.login') }}">Login</a>
-        @endguest
+        <a href="{{ route('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ route('admin.users.index') }}">Users</a>
+        <a href="{{ route('admin.municipalities.index') }}">Municipalities</a>
+        <a href="{{ route('admin.offices.index') }}">Offices</a>
+        <a href="{{ route('admin.office-staff.index') }}">Office Staff</a>
+        <a href="{{ route('admin.reports.index') }}">Reports</a>
 
-        @auth
-            <a href="{{ route('auth.logout') }}">Logout</a>
-        @endauth
-    </nav>
-</div>
+        <a href="{{ route('auth.logout') }}">Logout</a>
+    @endauth
+
+    @guest
+        <a class="brand" href="{{ route('auth.login') }}">E-Services</a>
+        <a href="{{ route('auth.login') }}">Login</a>
+        <a href="{{ route('auth.register') }}">Register</a>
+    @endguest
+</aside>
