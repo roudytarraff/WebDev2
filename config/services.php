@@ -40,5 +40,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT'),
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
+    'id_verification' => [
+        'demo_mode' => env('ID_VERIFICATION_DEMO_MODE', true),
+        'url' => env('ID_VERIFICATION_API_URL', 'https://api.ocr.space/parse/image'),
+        'key' => env('ID_VERIFICATION_API_KEY'),
+    ],
 
 ];
