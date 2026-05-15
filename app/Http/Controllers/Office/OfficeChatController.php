@@ -2,13 +2,9 @@
 
 namespace App\Http\Controllers\Office;
 
-use App\Events\ChatMessageSent;
-use App\Events\NotificationSent;
 use App\Models\Chat;
 use App\Models\ChatMessage;
-use App\Models\Notification;
 use App\Models\ServiceRequest;
-use App\Services\FcmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
