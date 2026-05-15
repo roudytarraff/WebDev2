@@ -26,10 +26,23 @@ use App\Http\Controllers\DiscoveryController;
 use App\Http\Controllers\Citizen\CitizenRequestTrackingController;
 use App\Http\Controllers\Citizen\CitizenProfileController;
 use App\Http\Controllers\Citizen\CitizenServiceRequestController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (! Auth::check()) {
+        return redirect()->route('auth.login');
+    }
+
+    if (Auth::user()->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if (Auth::user()->isOfficeStaff()) {
+        return redirect()->route('office.dashboard');
+    }
+
+    return redirect()->route('home');
 });
 
 Route::get('register', [AuthController::class, 'register'])->name('auth.register');
