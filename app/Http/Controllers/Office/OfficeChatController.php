@@ -95,21 +95,6 @@ class OfficeChatController extends OfficeBaseController
 
         $message->load('sender');
 
-        // Broadcast to both sides of the chat in real time
-        broadcast(new ChatMessageSent($message))->toOthers();
-
-        // Notify the citizen
-        $notification = Notification::create([
-            'user_id'  => $chat->citizen_user_id,
-            'type'     => 'chat_message',
-            'title'    => 'New message from office',
-            'message'  => Auth::user()->full_name . ' replied on request ' . ($chat->request->request_number ?? ''),
-            'channel'  => 'system',
-            'is_read'  => false,
-        ]);
-        broadcast(new NotificationSent($notification));
-        app(FcmService::class)->notifyUser($chat->citizen, 'New Message', $notification->message);
-
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => $this->messagePayload($message),

@@ -11,6 +11,8 @@
             @include('admin.navbar')
         @elseif(auth()->user()?->isOfficeStaff())
             @include('office.navbar')
+        @else
+            @include('citizen.navbar')
         @endif
 
         <main class="main">
@@ -34,6 +36,11 @@
 
                         @if(auth()->user()?->isOfficeStaff())
                             <a href="{{ route('office.dashboard') }}">Office Dashboard</a>
+                        @endif
+
+                        @if(!auth()->user()?->isAdmin() && !auth()->user()?->isOfficeStaff())
+                            <a href="{{ route('chat.index') }}" class="button">My Chats</a>
+                            <a href="{{ route('chat.create') }}" class="button">Start a Chat</a>
                         @endif
                     </div>
                 </div>

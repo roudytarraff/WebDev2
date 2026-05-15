@@ -41,4 +41,15 @@ return [
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'twilio' => [
+        'sid'   => env('TWILIO_SID'),
+        'token' => env('TWILIO_TOKEN'),
+        'from'  => env('TWILIO_FROM'),
+    ],
+
+    'firebase' => [
+        'project_id'  => env('FIREBASE_PROJECT_ID'),
+        'server_key'  => env('FIREBASE_SERVER_KEY'),
+    ],
+
 ];

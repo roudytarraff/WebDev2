@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'profile_photo',
+        'fcm_token',
         'password',
         'status'
     ];

@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CitizenChatController;
+use App\Http\Controllers\FcmTokenController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminMunicipalityController;
 use App\Http\Controllers\Admin\AdminOfficeController;
@@ -47,6 +50,27 @@ Route::middleware(['isconnected', 'otp'])->group(function () {
     Route::get('/home', function () {
         return view('home');
     })->name('home');
+
+    // FCM push token (any authenticated user)
+    Route::post('/fcm/token', [FcmTokenController::class, 'store'])->name('fcm.token');
+
+    // Unified chat (citizens + office staff)
+    Route::prefix('chat')->name('chat.')->group(function () {
+        Route::get('/', [ChatController::class, 'index'])->name('index');
+        Route::get('/create', [ChatController::class, 'create'])->name('create');
+        Route::post('/', [ChatController::class, 'store'])->name('store');
+        Route::get('/{id}', [ChatController::class, 'show'])->name('show');
+        Route::get('/{id}/messages', [ChatController::class, 'messages'])->name('messages');
+        Route::post('/{id}/messages', [ChatController::class, 'storeMessage'])->name('messages.store');
+    });
+
+    // Citizen chat
+    Route::prefix('citizen')->name('citizen.')->group(function () {
+        Route::get('chats', [CitizenChatController::class, 'index'])->name('chats.index');
+        Route::get('chats/{id}', [CitizenChatController::class, 'show'])->name('chats.show');
+        Route::get('chats/{id}/messages', [CitizenChatController::class, 'messages'])->name('chats.messages');
+        Route::post('chats/{id}/messages', [CitizenChatController::class, 'storeMessage'])->name('chats.messages.store');
+    });
 });
 
 Route::redirect('/Office', '/office');
@@ -117,4 +141,5 @@ Route::prefix('office')->name('office.')->middleware(['isconnected', 'otp', 'isO
     Route::get('notifications', [OfficeNotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications', [OfficeNotificationController::class, 'store'])->name('notifications.store');
     Route::put('notifications/{id}/read', [OfficeNotificationController::class, 'markRead'])->name('notifications.read');
+    Route::put('notifications/mark-all-read', [OfficeNotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
 });
