@@ -133,6 +133,7 @@ Route::prefix('office')->name('office.')->middleware(['isconnected', 'otp', 'isO
 
     Route::get('payments', [OfficePaymentController::class, 'index'])->name('payments.index');
     Route::get('payments/{id}', [OfficePaymentController::class, 'show'])->name('payments.show');
+    Route::get('payments/{id}/receipt', [OfficePaymentController::class, 'receipt'])->name('payments.receipt');
 
     Route::get('notifications', [OfficeNotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications', [OfficeNotificationController::class, 'store'])->name('notifications.store');
@@ -199,3 +200,93 @@ Route::prefix('office')->name('office.')->middleware(['isconnected', 'otp', 'isO
             ->name('requests.generated-documents.download');
     });
 });
+
+    Route::get('/discover', [DiscoveryController::class, 'index'])->name('discovery.index');
+    Route::get('/discover/offices/{id}', [DiscoveryController::class, 'showOffice'])->name('discovery.offices.show');
+    Route::get('/discover/services/{id}', [DiscoveryController::class, 'showService'])->name('discovery.services.show');
+
+   Route::prefix('citizen')->name('citizen.')->middleware(['isconnected', 'otp'])->group(function () {
+    Route::get('profile', [CitizenProfileController::class, 'show'])->name('profile.show');
+    Route::get('profile/edit', [CitizenProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [CitizenProfileController::class, 'update'])->name('profile.update');
+
+    Route::middleware('citizenVerified')->group(function () {
+
+    Route::get('services/{service}/request/start', [CitizenServiceRequestController::class, 'start'])
+            ->name('service-requests.start');
+
+        Route::post('services/{service}/request/details', [CitizenServiceRequestController::class, 'storeDetails'])
+            ->name('service-requests.details.store');
+
+        Route::get('service-requests/documents', [CitizenServiceRequestController::class, 'documents'])
+            ->name('service-requests.documents');
+
+        Route::post('service-requests/documents', [CitizenServiceRequestController::class, 'storeDocuments'])
+            ->name('service-requests.documents.store');
+
+        Route::get('service-requests/appointment', [CitizenServiceRequestController::class, 'appointment'])
+            ->name('service-requests.appointment');
+
+        Route::post('service-requests/appointment', [CitizenServiceRequestController::class, 'storeAppointment'])
+            ->name('service-requests.appointment.store');
+
+        Route::get('service-requests/payment', [CitizenServiceRequestController::class, 'payment'])
+            ->name('service-requests.payment');
+
+        Route::post('service-requests/payment', [CitizenServiceRequestController::class, 'storePayment'])
+            ->name('service-requests.payment.store');
+
+        Route::get('service-requests/review', [CitizenServiceRequestController::class, 'review'])
+            ->name('service-requests.review');
+
+        Route::post('service-requests/submit', [CitizenServiceRequestController::class, 'submit'])
+            ->name('service-requests.submit');
+        
+        Route::get('feedback', [CitizenFeedbackController::class, 'index'])
+            ->name('feedback.index');
+
+        Route::get('requests/{serviceRequest}/feedback/create', [CitizenFeedbackController::class, 'create'])
+           ->name('feedback.create');
+
+        Route::post('requests/{serviceRequest}/feedback', [CitizenFeedbackController::class, 'store'])
+           ->name('feedback.store');
+
+        Route::get('payments/{payment}/stripe/checkout', [StripePaymentController::class, 'checkout'])
+            ->name('payments.stripe.checkout');
+
+        Route::get('payments/{payment}/stripe/success', [StripePaymentController::class, 'success'])
+            ->name('payments.stripe.success');
+
+        Route::get('payments/{payment}/stripe/cancel', [StripePaymentController::class, 'cancel'])
+           ->name('payments.stripe.cancel');
+
+        Route::get('service-requests/cancel', [CitizenServiceRequestController::class, 'cancel'])
+            ->name('service-requests.cancel');
+
+        Route::post('appointments/{appointment}/cancel', [CitizenServiceRequestController::class, 'cancelAppointment'])
+            ->name('appointments.cancel');
+
+        Route::get('requests', [CitizenRequestTrackingController::class, 'index'])->name('requests.index');
+
+        Route::get('requests/{id}', [CitizenRequestTrackingController::class, 'show'])->name('requests.show');
+
+        Route::get('requests/{id}/documents/{documentId}/download', [CitizenRequestTrackingController::class, 'downloadDocument'])
+            ->name('requests.documents.download');
+
+        Route::get('requests/{id}/generated-documents/{documentId}/download', [CitizenRequestTrackingController::class, 'downloadGeneratedDocument'])
+            ->name('requests.generated-documents.download');
+        
+        Route::get('payments', [CitizenPaymentController::class, 'index'])
+            ->name('payments.index');
+
+        Route::get('payments/{payment}', [CitizenPaymentController::class, 'show'])
+            ->name('payments.show');
+
+        Route::get('payments/{payment}/receipt/download', [CitizenPaymentController::class, 'downloadReceipt'])
+            ->name('payments.receipt.download');
+
+    });
+});
+
+       Route::post('/stripe/webhook', [StripePaymentController::class, 'webhook'])
+          ->name('stripe.webhook');

@@ -18,7 +18,7 @@ class ServiceRequest extends Model
         'status',
         'description',
         'qr_code',
-        'submitted_at'
+        'submitted_at',
     ];
 
     public function citizen()

@@ -9,13 +9,19 @@ class Feedback extends Model
 {
     use HasFactory;
 
+    protected $table = 'feedback';
+
     protected $fillable = [
         'request_id',
         'citizen_user_id',
         'office_id',
         'rating',
         'comment',
-        'office_reply'
+        'office_reply',
+    ];
+
+    protected $casts = [
+        'rating' => 'integer',
     ];
 
     public function request()
