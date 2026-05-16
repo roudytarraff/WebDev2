@@ -983,5 +983,50 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Extra Appointment Slots For Testing
+        |--------------------------------------------------------------------------
+        | This creates many available future slots for every active service that
+        | requires an appointment. It does not delete existing slots or requests.
+        */
+        $appointmentServices = Service::where('status', 'active')
+            ->where('requires_appointment', true)
+            ->with('office')
+            ->get();
+
+        $slotTimes = [
+            ['09:00', '10:00'],
+            ['10:00', '11:00'],
+            ['11:00', '12:00'],
+            ['13:00', '14:00'],
+            ['14:00', '15:00'],
+        ];
+
+        foreach ($appointmentServices as $service) {
+            for ($day = 1; $day <= 30; $day++) {
+                $date = now()->addDays($day);
+
+                // Skip Sunday. Carbon dayOfWeek: 0 = Sunday, 6 = Saturday.
+                if ($date->dayOfWeek === 0) {
+                    continue;
+                }
+
+                foreach ($slotTimes as [$startTime, $endTime]) {
+                    AppointmentSlot::updateOrCreate([
+                        'office_id' => $service->office_id,
+                        'service_id' => $service->id,
+                        'slot_date' => $date->toDateString(),
+                        'start_time' => $startTime,
+                    ], [
+                        'end_time' => $endTime,
+                        'capacity' => 10,
+                        'status' => 'available',
+                    ]);
+                }
+            }
+        }
     }
 }

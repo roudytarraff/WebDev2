@@ -18,7 +18,11 @@ class Payment extends Model
         'provider',
         'status',
         'transaction_reference',
-        'paid_at'
+        'paid_at',
+    ];
+
+    protected $casts = [
+        'paid_at' => 'datetime',
     ];
 
     public function request()

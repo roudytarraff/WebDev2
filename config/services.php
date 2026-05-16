@@ -40,5 +40,19 @@ return [
         'redirect' => env('GOOGLE_REDIRECT'),
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
+    
+    'id_verification' => [
+    'demo_mode' => env('ID_VERIFICATION_DEMO_MODE', false),
+    'url' => env('ID_VERIFICATION_API_URL', 'https://api.ocr.space/parse/image'),
+    'key' => env('ID_VERIFICATION_API_KEY'),
+    ],
+
+    'azure_vision' => [
+    'endpoint' => env('AZURE_VISION_ENDPOINT'),
+    'key' => env('AZURE_VISION_KEY'),
+    'api_version' => env('AZURE_VISION_API_VERSION', '2024-02-01'),
+    ],
+
+    
 
 ];
