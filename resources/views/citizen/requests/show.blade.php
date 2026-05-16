@@ -94,95 +94,6 @@
             width: auto;
         }
 
-        .payment-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 14px;
-            background: #ffffff;
-        }
-
-        .payment-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .payment-card-header h3 {
-            margin: 0;
-            font-size: 18px;
-            color: #0f172a;
-        }
-
-        .payment-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-        }
-
-        .payment-item {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 10px;
-        }
-
-        .payment-item span {
-            display: block;
-            font-size: 13px;
-            color: #64748b;
-            margin-bottom: 4px;
-        }
-
-        .payment-item strong {
-            display: block;
-            font-size: 14px;
-            color: #0f172a;
-            word-break: break-word;
-        }
-
-        .payment-reference {
-            font-size: 12px;
-            line-height: 1.5;
-            word-break: break-all;
-        }
-
-        .payment-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-        }
-
-        .payment-actions .button,
-        .payment-actions .button.secondary {
-            width: auto;
-            text-decoration: none;
-        }
-
-        .feedback-box {
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            background: #ffffff;
-        }
-
-        .feedback-rating {
-            color: #f59e0b;
-            font-size: 20px;
-            letter-spacing: 2px;
-            margin-bottom: 8px;
-        }
-
-        .feedback-reply {
-            background: #f8fafc;
-            border-left: 3px solid #2563eb;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 12px;
-        }
-
         @media (max-width: 900px) {
             .appointment-warning {
                 max-width: 100%;
@@ -190,22 +101,6 @@
 
             .qr-actions .button,
             .qr-actions .button.secondary {
-                width: 100%;
-                text-align: center;
-            }
-        }
-
-        @media (max-width: 700px) {
-            .payment-card-header {
-                flex-direction: column;
-            }
-
-            .payment-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .payment-actions .button,
-            .payment-actions .button.secondary {
                 width: 100%;
                 text-align: center;
             }
@@ -247,12 +142,6 @@
     @php
         $normalSteps = ['pending', 'in_progress', 'approved', 'completed'];
         $currentStatus = $serviceRequest->status;
-
-        $hasCompletedAppointment = $serviceRequest->appointments->contains(function ($appointment) {
-            return $appointment->status === 'completed';
-        });
-
-        $canLeaveFeedback = $serviceRequest->status === 'completed' || $hasCompletedAppointment;
     @endphp
 
     <section class="grid two">
@@ -377,6 +266,8 @@
                 if ($serviceRequest->qr_code && ! $qrService->exists($serviceRequest)) {
                     $qrService->generate($serviceRequest);
                 }
+
+                $qrImagePath = $qrService->getPublicPath($serviceRequest);
             @endphp
 
             @if($serviceRequest->qr_code)
@@ -386,11 +277,7 @@
                 </p>
 
                 <div class="qr-box">
-                    <img
-                        src="{{ route('tracking.qr-image', $serviceRequest->qr_code) }}"
-                        alt="Request QR Code"
-                        class="qr-image"
-                    >
+                    <img src="{{ route('tracking.qr-image', $serviceRequest->qr_code) }}"alt="Request QR Code"class="qr-image">
                 </div>
 
                 <p><strong>QR Code:</strong> {{ $serviceRequest->qr_code }}</p>
@@ -401,7 +288,7 @@
                     </a>
 
                     <a href="{{ route('tracking.qr-image', $serviceRequest->qr_code) }}" target="_blank" class="button secondary">
-                        Open QR Image
+                         Open QR Image
                     </a>
                 </div>
             @else
@@ -504,61 +391,6 @@
         </div>
     </section>
 
-    <div class="panel">
-        <div class="panel-head">
-            <h2>Feedback</h2>
-
-            @if($serviceRequest->feedback)
-                <span class="badge">Submitted</span>
-            @elseif($canLeaveFeedback)
-                <span class="badge">Available</span>
-            @else
-                <span class="badge">Not available yet</span>
-            @endif
-        </div>
-
-        @if($serviceRequest->feedback)
-            <div class="feedback-box">
-                <h3>Your Feedback</h3>
-
-                <div class="feedback-rating">
-                    {{ str_repeat('★', $serviceRequest->feedback->rating) }}
-                </div>
-
-                <p><strong>Rating:</strong> {{ $serviceRequest->feedback->rating }}/5</p>
-
-                <p><strong>Your Comment:</strong></p>
-                <p>{{ $serviceRequest->feedback->comment ?: 'No comment provided.' }}</p>
-
-                <small class="muted">
-                    Submitted on {{ $serviceRequest->feedback->created_at->format('M d, Y h:i A') }}
-                </small>
-
-                @if($serviceRequest->feedback->office_reply)
-                    <div class="feedback-reply">
-                        <strong>Office Reply:</strong>
-                        <p>{{ $serviceRequest->feedback->office_reply }}</p>
-                    </div>
-                @else
-                    <p class="muted">The office has not replied yet.</p>
-                @endif
-            </div>
-        @elseif($canLeaveFeedback)
-            <p>
-                This service request or appointment is completed.
-                You can now rate your experience.
-            </p>
-
-            <a href="{{ route('citizen.feedback.create', $serviceRequest->id) }}" class="button">
-                Leave Feedback
-            </a>
-        @else
-            <p class="muted">
-                Feedback will be available after the request or appointment is completed.
-            </p>
-        @endif
-    </div>
-
     <section class="grid two">
         <div class="panel">
             <div class="panel-head">
@@ -566,85 +398,41 @@
                 <span class="badge">{{ $serviceRequest->payments->count() }} payments</span>
             </div>
 
-            @forelse($serviceRequest->payments as $payment)
-                <div class="payment-card">
-                    <div class="payment-card-header">
-                        <div>
-                            <h3>
-                                {{ $payment->currency }}
-                                {{ number_format((float) $payment->amount, 2) }}
-                            </h3>
+            <div class="details-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                            <th>Paid At</th>
+                        </tr>
+                    </thead>
 
-                            <small class="muted">
-                                {{ ucwords(str_replace('_', ' ', $payment->payment_method)) }}
-                                @if($payment->provider)
-                                    via {{ ucfirst($payment->provider) }}
-                                @endif
-                            </small>
-                        </div>
-
-                        <span class="badge">
-                            {{ ucfirst($payment->status) }}
-                        </span>
-                    </div>
-
-                    <div class="payment-grid">
-                        <div class="payment-item">
-                            <span>Payment Method</span>
-                            <strong>{{ ucwords(str_replace('_', ' ', $payment->payment_method)) }}</strong>
-                        </div>
-
-                        <div class="payment-item">
-                            <span>Provider</span>
-                            <strong>{{ $payment->provider ? ucfirst($payment->provider) : 'N/A' }}</strong>
-                        </div>
-
-                        <div class="payment-item">
-                            <span>Paid At</span>
-                            <strong>
-                                @if($payment->paid_at)
-                                    {{ \Illuminate\Support\Carbon::parse($payment->paid_at)->format('M d, Y h:i A') }}
-                                @else
-                                    Not paid yet
-                                @endif
-                            </strong>
-                        </div>
-
-                        <div class="payment-item">
-                            <span>Receipt</span>
-                            <strong>
-                                @if($payment->status === 'success')
-                                    Available
-                                @else
-                                    Not available yet
-                                @endif
-                            </strong>
-                        </div>
-
-                        <div class="payment-item" style="grid-column: 1 / -1;">
-                            <span>Transaction Reference</span>
-
-                            <strong class="payment-reference">
-                                {{ $payment->transaction_reference ?? 'No reference' }}
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div class="payment-actions">
-                        <a href="{{ route('citizen.payments.show', $payment->id) }}" class="button secondary">
-                            View Payment
-                        </a>
-
-                        @if($payment->status === 'success')
-                            <a href="{{ route('citizen.payments.receipt.download', $payment->id) }}" class="button">
-                                Download Receipt
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            @empty
-                <p>No payments found for this request.</p>
-            @endforelse
+                    <tbody>
+                        @forelse($serviceRequest->payments as $payment)
+                            <tr>
+                                <td>{{ $payment->currency }} {{ number_format((float) $payment->amount, 2) }}</td>
+                                <td>{{ ucwords(str_replace('_', ' ', $payment->payment_method)) }}</td>
+                                <td><span class="badge">{{ ucfirst($payment->status) }}</span></td>
+                                <td>{{ $payment->transaction_reference ?? 'No reference' }}</td>
+                                <td>
+                                    @if($payment->paid_at)
+                                        {{ \Illuminate\Support\Carbon::parse($payment->paid_at)->format('M d, Y h:i A') }}
+                                    @else
+                                        Not paid yet
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">No payments found for this request.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="panel">

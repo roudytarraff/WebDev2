@@ -26,13 +26,23 @@ use App\Http\Controllers\DiscoveryController;
 use App\Http\Controllers\Citizen\CitizenRequestTrackingController;
 use App\Http\Controllers\Citizen\CitizenProfileController;
 use App\Http\Controllers\Citizen\CitizenServiceRequestController;
-use App\Http\Controllers\Citizen\StripePaymentController;
-use App\Http\Controllers\Citizen\CitizenPaymentController;
-use App\Http\Controllers\Citizen\CitizenFeedbackController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (! Auth::check()) {
+        return redirect()->route('auth.login');
+    }
+
+    if (Auth::user()->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if (Auth::user()->isOfficeStaff()) {
+        return redirect()->route('office.dashboard');
+    }
+
+    return redirect()->route('home');
 });
 
 Route::get('register', [AuthController::class, 'register'])->name('auth.register');
@@ -130,6 +140,65 @@ Route::prefix('office')->name('office.')->middleware(['isconnected', 'otp', 'isO
     Route::put('notifications/{id}/read', [OfficeNotificationController::class, 'markRead'])->name('notifications.read');
 
     
+});
+
+    Route::get('/discover', [DiscoveryController::class, 'index'])->name('discovery.index');
+    Route::get('/discover/offices/{id}', [DiscoveryController::class, 'showOffice'])->name('discovery.offices.show');
+    Route::get('/discover/services/{id}', [DiscoveryController::class, 'showService'])->name('discovery.services.show');
+
+   Route::prefix('citizen')->name('citizen.')->middleware(['isconnected', 'otp'])->group(function () {
+    Route::get('profile', [CitizenProfileController::class, 'show'])->name('profile.show');
+    Route::get('profile/edit', [CitizenProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [CitizenProfileController::class, 'update'])->name('profile.update');
+
+    Route::middleware('citizenVerified')->group(function () {
+
+    Route::get('services/{service}/request/start', [CitizenServiceRequestController::class, 'start'])
+            ->name('service-requests.start');
+
+        Route::post('services/{service}/request/details', [CitizenServiceRequestController::class, 'storeDetails'])
+            ->name('service-requests.details.store');
+
+        Route::get('service-requests/documents', [CitizenServiceRequestController::class, 'documents'])
+            ->name('service-requests.documents');
+
+        Route::post('service-requests/documents', [CitizenServiceRequestController::class, 'storeDocuments'])
+            ->name('service-requests.documents.store');
+
+        Route::get('service-requests/appointment', [CitizenServiceRequestController::class, 'appointment'])
+            ->name('service-requests.appointment');
+
+        Route::post('service-requests/appointment', [CitizenServiceRequestController::class, 'storeAppointment'])
+            ->name('service-requests.appointment.store');
+
+        Route::get('service-requests/payment', [CitizenServiceRequestController::class, 'payment'])
+            ->name('service-requests.payment');
+
+        Route::post('service-requests/payment', [CitizenServiceRequestController::class, 'storePayment'])
+            ->name('service-requests.payment.store');
+
+        Route::get('service-requests/review', [CitizenServiceRequestController::class, 'review'])
+            ->name('service-requests.review');
+
+        Route::post('service-requests/submit', [CitizenServiceRequestController::class, 'submit'])
+            ->name('service-requests.submit');
+
+        Route::get('service-requests/cancel', [CitizenServiceRequestController::class, 'cancel'])
+            ->name('service-requests.cancel');
+
+        Route::post('appointments/{appointment}/cancel', [CitizenServiceRequestController::class, 'cancelAppointment'])
+            ->name('appointments.cancel');
+
+        Route::get('requests', [CitizenRequestTrackingController::class, 'index'])->name('requests.index');
+
+        Route::get('requests/{id}', [CitizenRequestTrackingController::class, 'show'])->name('requests.show');
+
+        Route::get('requests/{id}/documents/{documentId}/download', [CitizenRequestTrackingController::class, 'downloadDocument'])
+            ->name('requests.documents.download');
+
+        Route::get('requests/{id}/generated-documents/{documentId}/download', [CitizenRequestTrackingController::class, 'downloadGeneratedDocument'])
+            ->name('requests.generated-documents.download');
+    });
 });
 
     Route::get('/discover', [DiscoveryController::class, 'index'])->name('discovery.index');

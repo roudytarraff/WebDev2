@@ -6,6 +6,8 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Mail\TwoFactorOtpMail;
+use App\Models\CitizenProfile;
+use App\Models\Role;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\TwoFactorAuth;
@@ -57,6 +59,8 @@ class AuthController extends Controller
             'status'     => 'pending'
         ]);
 
+        $this->ensureCitizenAccount($user);
+
         return $this->sendOtp($user);
     }
 
@@ -99,6 +103,8 @@ class AuthController extends Controller
             ]);
         }
 
+        $this->ensureCitizenAccount($user);
+
         Auth::logout();
 
         return $this->sendOtp($user);
@@ -128,6 +134,18 @@ class AuthController extends Controller
         ]);
 
         return redirect()->route('otp.form');
+    }
+
+    private function ensureCitizenAccount(User $user): void
+    {
+        $citizenRole = Role::firstOrCreate(['name' => 'citizen']);
+
+        $user->roles()->syncWithoutDetaching([$citizenRole->id]);
+
+        CitizenProfile::firstOrCreate(
+            ['user_id' => $user->id],
+            ['verification_status' => 'pending']
+        );
     }
 
     /* ================= OTP FORM ================= */

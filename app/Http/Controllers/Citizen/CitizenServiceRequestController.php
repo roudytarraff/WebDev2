@@ -12,13 +12,13 @@ use App\Models\RequestDocument;
 use App\Models\RequestStatusHistory;
 use App\Models\Service;
 use App\Models\ServiceRequest;
-use App\Services\RequestQrCodeService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
+use App\Services\RequestQrCodeService;
 
 class CitizenServiceRequestController extends Controller
 {
@@ -31,9 +31,7 @@ class CitizenServiceRequestController extends Controller
         if ($service->status !== 'active') {
             return redirect()
                 ->route('discovery.services.show', $service->id)
-                ->withErrors([
-                    'service' => 'This service is not available right now.',
-                ]);
+                ->withErrors(['service' => 'This service is not available right now.']);
         }
 
         session()->put($this->sessionKey, [
@@ -44,9 +42,7 @@ class CitizenServiceRequestController extends Controller
             'payment_method' => null,
         ]);
 
-        return view('citizen.service-requests.start', [
-            'service' => $service,
-        ]);
+        return view('citizen.service-requests.start', compact('service'));
     }
 
     public function storeDetails(Request $request, Service $service)
@@ -58,7 +54,7 @@ class CitizenServiceRequestController extends Controller
         $wizard = session($this->sessionKey, []);
 
         $wizard['service_id'] = $service->id;
-        $wizard['description'] = trim($request->input('description'));
+        $wizard['description'] = $request->description;
         $wizard['documents'] = $wizard['documents'] ?? [];
         $wizard['slot_id'] = $wizard['slot_id'] ?? null;
         $wizard['payment_method'] = $wizard['payment_method'] ?? null;
@@ -76,13 +72,9 @@ class CitizenServiceRequestController extends Controller
             return $wizard;
         }
 
-        $service = Service::with(['office', 'documents'])
-            ->findOrFail($wizard['service_id']);
+        $service = Service::with(['office', 'documents'])->findOrFail($wizard['service_id']);
 
-        return view('citizen.service-requests.documents', [
-            'service' => $service,
-            'wizard' => $wizard,
-        ]);
+        return view('citizen.service-requests.documents', compact('service', 'wizard'));
     }
 
     public function storeDocuments(Request $request)
@@ -95,7 +87,22 @@ class CitizenServiceRequestController extends Controller
 
         $service = Service::with('documents')->findOrFail($wizard['service_id']);
 
-        $rules = $this->buildDocumentValidationRules($service, $wizard);
+        $rules = [];
+
+        foreach ($service->documents as $document) {
+            $rule = $document->is_required ? 'required' : 'nullable';
+
+            if (! empty($wizard['documents'][$document->id])) {
+                $rule = 'nullable';
+            }
+
+            $rules['documents.' . $document->id] = [
+                $rule,
+                'file',
+                'mimes:pdf,jpg,jpeg,png',
+                'max:5120',
+            ];
+        }
 
         $request->validate($rules);
 
@@ -123,7 +130,6 @@ class CitizenServiceRequestController extends Controller
         }
 
         $wizard['documents'] = $uploadedDocuments;
-
         session()->put($this->sessionKey, $wizard);
 
         if ($service->requires_appointment) {
@@ -147,11 +153,25 @@ class CitizenServiceRequestController extends Controller
             return redirect()->route('citizen.service-requests.payment');
         }
 
-        $matchingServiceIds = $this->getMatchingServiceIds($service);
+        $bookedStatuses = ['scheduled', 'completed'];
+
+        /*
+         * This is the safest logic:
+         * 1. Prefer slots that match the exact selected service_id.
+         * 2. If the project demo data has duplicated service records with the same name,
+         *    also allow same-name services in the same office.
+         * 3. Never use slots from a different office.
+         */
+        $matchingServiceIds = Service::where('name', $service->name)
+            ->where('office_id', $service->office_id)
+            ->pluck('id')
+            ->push($service->id)
+            ->unique()
+            ->values();
 
         $allAvailableSlots = AppointmentSlot::withCount([
-                'appointments as booked_appointments_count' => function ($query) {
-                    $query->whereIn('status', ['scheduled', 'completed']);
+                'appointments as booked_appointments_count' => function ($query) use ($bookedStatuses) {
+                    $query->whereIn('status', $bookedStatuses);
                 },
             ])
             ->whereIn('service_id', $matchingServiceIds)
@@ -160,11 +180,12 @@ class CitizenServiceRequestController extends Controller
             ->whereDate('slot_date', '>=', now()->toDateString())
             ->orderBy('slot_date')
             ->orderBy('start_time')
-            ->get();
-
-        $allAvailableSlots = $allAvailableSlots->filter(function ($slot) {
-            return $this->getRemainingCapacity($slot) > 0;
-        })->values();
+            ->get()
+            ->filter(function ($slot) {
+                $remaining = (int) $slot->capacity - (int) $slot->booked_appointments_count;
+                return $remaining > 0;
+            })
+            ->values();
 
         $availableDates = $allAvailableSlots
             ->pluck('slot_date')
@@ -181,17 +202,19 @@ class CitizenServiceRequestController extends Controller
             $selectedDate = now()->toDateString();
         }
 
-        $slots = $allAvailableSlots->filter(function ($slot) use ($selectedDate) {
-            return $slot->slot_date == $selectedDate;
-        })->values();
+        $slots = $allAvailableSlots
+            ->filter(function ($slot) use ($selectedDate) {
+                return $slot->slot_date == $selectedDate;
+            })
+            ->values();
 
-        return view('citizen.service-requests.appointment', [
-            'service' => $service,
-            'slots' => $slots,
-            'wizard' => $wizard,
-            'availableDates' => $availableDates,
-            'selectedDate' => $selectedDate,
-        ]);
+        return view('citizen.service-requests.appointment', compact(
+            'service',
+            'slots',
+            'wizard',
+            'availableDates',
+            'selectedDate'
+        ));
     }
 
     public function storeAppointment(Request $request)
@@ -212,26 +235,42 @@ class CitizenServiceRequestController extends Controller
             'slot_id' => ['required', 'exists:appointment_slots,id'],
         ]);
 
-        $slot = $this->findAvailableSlot($service, $request->input('slot_id'));
+        $bookedStatuses = ['scheduled', 'completed'];
+
+        $matchingServiceIds = Service::where('name', $service->name)
+            ->where('office_id', $service->office_id)
+            ->pluck('id')
+            ->push($service->id)
+            ->unique()
+            ->values();
+
+        $slot = AppointmentSlot::withCount([
+                'appointments as booked_appointments_count' => function ($query) use ($bookedStatuses) {
+                    $query->whereIn('status', $bookedStatuses);
+                },
+            ])
+            ->where('id', $request->slot_id)
+            ->whereIn('service_id', $matchingServiceIds)
+            ->where('office_id', $service->office_id)
+            ->where('status', 'available')
+            ->whereDate('slot_date', '>=', now()->toDateString())
+            ->first();
 
         if (! $slot) {
             return back()
-                ->withErrors([
-                    'slot_id' => 'The selected appointment slot is not available for this service and office.',
-                ])
+                ->withErrors(['slot_id' => 'The selected appointment slot is not available for this service and office.'])
                 ->withInput();
         }
 
-        if ($this->getRemainingCapacity($slot) <= 0) {
+        $remaining = (int) $slot->capacity - (int) $slot->booked_appointments_count;
+
+        if ($remaining <= 0) {
             return back()
-                ->withErrors([
-                    'slot_id' => 'The selected appointment slot is full.',
-                ])
+                ->withErrors(['slot_id' => 'The selected appointment slot is full.'])
                 ->withInput();
         }
 
         $wizard['slot_id'] = $slot->id;
-
         session()->put($this->sessionKey, $wizard);
 
         return redirect()->route('citizen.service-requests.payment');
@@ -249,16 +288,12 @@ class CitizenServiceRequestController extends Controller
 
         if ((float) $service->price <= 0) {
             $wizard['payment_method'] = null;
-
             session()->put($this->sessionKey, $wizard);
 
             return redirect()->route('citizen.service-requests.review');
         }
 
-        return view('citizen.service-requests.payment', [
-            'service' => $service,
-            'wizard' => $wizard,
-        ]);
+        return view('citizen.service-requests.payment', compact('service', 'wizard'));
     }
 
     public function storePayment(Request $request)
@@ -273,7 +308,6 @@ class CitizenServiceRequestController extends Controller
 
         if ((float) $service->price <= 0) {
             $wizard['payment_method'] = null;
-
             session()->put($this->sessionKey, $wizard);
 
             return redirect()->route('citizen.service-requests.review');
@@ -283,22 +317,19 @@ class CitizenServiceRequestController extends Controller
             'payment_method' => ['required', 'in:card,cash,crypto'],
         ]);
 
-        $paymentMethod = $request->input('payment_method');
-
-        if ($paymentMethod === 'card' && ! $service->supports_online_payment) {
+        if ($request->payment_method === 'card' && ! $service->supports_online_payment) {
             return back()->withErrors([
                 'payment_method' => 'Card payment is not supported for this service.',
             ]);
         }
 
-        if ($paymentMethod === 'crypto' && ! $service->supports_crypto_payment) {
+        if ($request->payment_method === 'crypto' && ! $service->supports_crypto_payment) {
             return back()->withErrors([
                 'payment_method' => 'Crypto payment is not supported for this service.',
             ]);
         }
 
-        $wizard['payment_method'] = $paymentMethod;
-
+        $wizard['payment_method'] = $request->payment_method;
         session()->put($this->sessionKey, $wizard);
 
         return redirect()->route('citizen.service-requests.review');
@@ -326,87 +357,188 @@ class CitizenServiceRequestController extends Controller
                 ->find($wizard['slot_id']);
         }
 
-        return view('citizen.service-requests.review', [
-            'service' => $service,
-            'wizard' => $wizard,
-            'slot' => $slot,
-        ]);
+        return view('citizen.service-requests.review', compact('service', 'wizard', 'slot'));
     }
 
     public function submit()
-    {
-        $wizard = $this->getWizardOrRedirect();
+{
+    $wizard = $this->getWizardOrRedirect();
 
-        if ($wizard instanceof \Illuminate\Http\RedirectResponse) {
-            return $wizard;
-        }
-
-        $service = Service::with('documents')->findOrFail($wizard['service_id']);
-
-        $validationRedirect = $this->validateBeforeSubmit($wizard, $service);
-
-        if ($validationRedirect) {
-            return $validationRedirect;
-        }
-
-        try {
-            $result = DB::transaction(function () use ($wizard, $service) {
-                $requestNumber = $this->generateRequestNumber();
-                $qrCode = 'QR-' . $requestNumber . '-' . Str::upper(Str::random(8));
-
-                $targetOfficeId = $service->office_id;
-
-                if ($service->requires_appointment && ! empty($wizard['slot_id'])) {
-                    $selectedSlot = AppointmentSlot::findOrFail($wizard['slot_id']);
-                    $targetOfficeId = $selectedSlot->office_id;
-                }
-
-                $serviceRequest = $this->createServiceRequest(
-                    $service,
-                    $wizard,
-                    $requestNumber,
-                    $qrCode,
-                    $targetOfficeId
-                );
-
-                app(RequestQrCodeService::class)->generate($serviceRequest);
-
-                $this->createInitialStatusHistory($serviceRequest);
-                $this->saveUploadedDocuments($serviceRequest, $wizard);
-
-                if ($service->requires_appointment && ! empty($wizard['slot_id'])) {
-                    $this->bookAppointment($serviceRequest, $service, $wizard['slot_id']);
-                }
-
-                $payment = $this->createPaymentIfNeeded($serviceRequest, $service, $wizard);
-                $this->notifyCitizenAndStaff($serviceRequest, $service, $targetOfficeId);
-
-                return [
-                    'serviceRequest' => $serviceRequest,
-                    'payment' => $payment,
-                ];
-            });
-        } catch (\Exception $exception) {
-            return redirect()
-                ->route('citizen.service-requests.appointment')
-                ->withErrors([
-                    'slot_id' => $exception->getMessage(),
-                ]);
-        }
-
-        session()->forget($this->sessionKey);
-
-        $payment = $result['payment'];
-        $serviceRequest = $result['serviceRequest'];
-
-        if ($payment && $payment->payment_method === 'card') {
-            return redirect()->route('citizen.payments.stripe.checkout', $payment);
-        }
-
-        return redirect()
-            ->route('citizen.requests.show', $serviceRequest->id)
-            ->with('success', 'Request submitted successfully.');
+    if ($wizard instanceof \Illuminate\Http\RedirectResponse) {
+        return $wizard;
     }
+
+    $service = Service::with(['documents', 'office.staff'])->findOrFail($wizard['service_id']);
+
+    foreach ($service->documents->where('is_required', true) as $document) {
+        if (empty($wizard['documents'][$document->id])) {
+            return redirect()
+                ->route('citizen.service-requests.documents')
+                ->withErrors(['documents' => 'Please upload all required documents before submitting.']);
+        }
+    }
+
+    if ($service->requires_appointment && empty($wizard['slot_id'])) {
+        return redirect()
+            ->route('citizen.service-requests.appointment')
+            ->withErrors(['slot_id' => 'Please select an appointment before submitting.']);
+    }
+
+    try {
+        $serviceRequest = DB::transaction(function () use ($wizard, $service) {
+            $requestNumber = $this->generateRequestNumber();
+            $qrCode = 'QR-' . $requestNumber . '-' . Str::upper(Str::random(8));
+
+            $selectedSlot = null;
+            $targetOfficeId = $service->office_id;
+
+            if ($service->requires_appointment && ! empty($wizard['slot_id'])) {
+                $selectedSlot = AppointmentSlot::findOrFail($wizard['slot_id']);
+
+                /*
+                 * IMPORTANT FIX:
+                 * If the citizen selected an appointment slot, save the request
+                 * under the same office as the slot.
+                 * This makes it appear in the correct office dashboard.
+                 */
+                $targetOfficeId = $selectedSlot->office_id;
+            }
+
+            $serviceRequest = ServiceRequest::create([
+                'request_number' => $requestNumber,
+                'citizen_user_id' => Auth::id(),
+                'office_id' => $targetOfficeId,
+                'service_id' => $service->id,
+                'assigned_to_user_id' => null,
+                'status' => 'pending',
+                'description' => $wizard['description'],
+                'qr_code' => $qrCode,
+                'submitted_at' => now(),
+            ]);
+
+            app(RequestQrCodeService::class)->generate($serviceRequest);
+
+            RequestStatusHistory::create([
+                'request_id' => $serviceRequest->id,
+                'old_status' => 'pending',
+                'new_status' => 'pending',
+                'changed_by_user_id' => Auth::id(),
+                'note' => 'Request submitted by citizen.',
+                'changed_at' => now(),
+            ]);
+
+            foreach (($wizard['documents'] ?? []) as $documentData) {
+                RequestDocument::create([
+                    'request_id' => $serviceRequest->id,
+                    'required_document_id' => $documentData['required_document_id'],
+                    'uploaded_by_user_id' => Auth::id(),
+                    'file_name' => $documentData['file_name'],
+                    'file_path' => $documentData['file_path'],
+                    'file_type' => $documentData['file_type'],
+                    'document_role' => 'citizen_upload',
+                    'uploaded_at' => now(),
+                ]);
+            }
+
+            if ($service->requires_appointment && ! empty($wizard['slot_id'])) {
+                $bookedStatuses = ['scheduled', 'completed'];
+
+                $matchingServiceIds = Service::where('name', $service->name)
+                    ->pluck('id')
+                    ->push($service->id)
+                    ->unique()
+                    ->values();
+
+                $slot = AppointmentSlot::withCount([
+                        'appointments as booked_appointments_count' => function ($query) use ($bookedStatuses) {
+                            $query->whereIn('status', $bookedStatuses);
+                        },
+                    ])
+                    ->where('id', $wizard['slot_id'])
+                    ->whereIn('service_id', $matchingServiceIds)
+                    ->where('status', 'available')
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $remaining = (int) $slot->capacity - (int) $slot->booked_appointments_count;
+
+                if ($remaining <= 0) {
+                    throw new \Exception('The selected appointment slot is full.');
+                }
+
+                Appointment::create([
+                    'request_id' => $serviceRequest->id,
+                    'citizen_user_id' => Auth::id(),
+                    'office_id' => $slot->office_id,
+                    'slot_id' => $slot->id,
+                    'status' => 'scheduled',
+                    'notes' => 'Appointment selected during request submission.',
+                ]);
+
+                $bookedAfterCreate = $slot->appointments()
+                    ->whereIn('status', $bookedStatuses)
+                    ->count();
+
+                if ($bookedAfterCreate >= (int) $slot->capacity) {
+                    $slot->status = 'full';
+                    $slot->save();
+                }
+            }
+
+            if ((float) $service->price > 0) {
+                $paymentMethod = $wizard['payment_method'] ?? 'cash';
+
+                Payment::create([
+                    'request_id' => $serviceRequest->id,
+                    'user_id' => Auth::id(),
+                    'amount' => $service->price,
+                    'currency' => 'USD',
+                    'payment_method' => $paymentMethod,
+                    'provider' => $paymentMethod === 'cash' ? null : 'mock',
+                    'status' => $paymentMethod === 'cash' ? 'pending' : 'success',
+                    'transaction_reference' => $paymentMethod === 'cash' ? null : 'MOCK-' . Str::upper(Str::random(10)),
+                    'paid_at' => $paymentMethod === 'cash' ? null : now(),
+                ]);
+            }
+
+            Notification::create([
+                'user_id' => Auth::id(),
+                'type' => 'request_submitted',
+                'title' => 'Request submitted successfully',
+                'message' => 'Your request ' . $requestNumber . ' was submitted successfully.',
+                'channel' => 'system',
+                'is_read' => false,
+            ]);
+
+            $staffUsers = OfficeStaff::where('office_id', $targetOfficeId)
+                ->where('status', 'active')
+                ->get();
+
+            foreach ($staffUsers as $staff) {
+                Notification::create([
+                    'user_id' => $staff->user_id,
+                    'type' => 'new_request',
+                    'title' => 'New service request',
+                    'message' => 'A new request ' . $requestNumber . ' was submitted for ' . $service->name . '.',
+                    'channel' => 'system',
+                    'is_read' => false,
+                ]);
+            }
+
+            return $serviceRequest;
+        });
+    } catch (\Exception $exception) {
+        return redirect()
+            ->route('citizen.service-requests.appointment')
+            ->withErrors(['slot_id' => $exception->getMessage()]);
+    }
+
+    session()->forget($this->sessionKey);
+
+    return redirect()
+        ->route('citizen.requests.show', $serviceRequest->id)
+        ->with('success', 'Request submitted successfully.');
+}
 
     public function cancelAppointment(Appointment $appointment)
     {
@@ -443,9 +575,8 @@ class CitizenServiceRequestController extends Controller
             ]);
 
             if ($slot->status === 'full') {
-                $slot->update([
-                    'status' => 'available',
-                ]);
+                $slot->status = 'available';
+                $slot->save();
             }
 
             Notification::create([
@@ -478,232 +609,6 @@ class CitizenServiceRequestController extends Controller
             ->with('success', 'Request submission cancelled.');
     }
 
-    private function buildDocumentValidationRules(Service $service, array $wizard): array
-    {
-        $rules = [];
-
-        foreach ($service->documents as $document) {
-            $fieldName = 'documents.' . $document->id;
-
-            $isAlreadyUploaded = ! empty($wizard['documents'][$document->id]);
-
-            if ($document->is_required && ! $isAlreadyUploaded) {
-                $requiredRule = 'required';
-            } else {
-                $requiredRule = 'nullable';
-            }
-
-            $rules[$fieldName] = [
-                $requiredRule,
-                'file',
-                'mimes:pdf,jpg,jpeg,png',
-                'max:5120',
-            ];
-        }
-
-        return $rules;
-    }
-
-    private function getMatchingServiceIds(Service $service)
-    {
-        return Service::where('name', $service->name)
-            ->where('office_id', $service->office_id)
-            ->pluck('id')
-            ->push($service->id)
-            ->unique()
-            ->values();
-    }
-
-    private function findAvailableSlot(Service $service, int $slotId)
-    {
-        $matchingServiceIds = $this->getMatchingServiceIds($service);
-
-        return AppointmentSlot::withCount([
-                'appointments as booked_appointments_count' => function ($query) {
-                    $query->whereIn('status', ['scheduled', 'completed']);
-                },
-            ])
-            ->where('id', $slotId)
-            ->whereIn('service_id', $matchingServiceIds)
-            ->where('office_id', $service->office_id)
-            ->where('status', 'available')
-            ->whereDate('slot_date', '>=', now()->toDateString())
-            ->first();
-    }
-
-    private function getRemainingCapacity(AppointmentSlot $slot): int
-    {
-        return (int) $slot->capacity - (int) $slot->booked_appointments_count;
-    }
-
-    private function validateBeforeSubmit(array $wizard, Service $service)
-    {
-        foreach ($service->documents->where('is_required', true) as $document) {
-            if (empty($wizard['documents'][$document->id])) {
-                return redirect()
-                    ->route('citizen.service-requests.documents')
-                    ->withErrors([
-                        'documents' => 'Please upload all required documents before submitting.',
-                    ]);
-            }
-        }
-
-        if ($service->requires_appointment && empty($wizard['slot_id'])) {
-            return redirect()
-                ->route('citizen.service-requests.appointment')
-                ->withErrors([
-                    'slot_id' => 'Please select an appointment before submitting.',
-                ]);
-        }
-
-        return null;
-    }
-
-    private function createServiceRequest(
-        Service $service,
-        array $wizard,
-        string $requestNumber,
-        string $qrCode,
-        int $targetOfficeId
-    ): ServiceRequest {
-        return ServiceRequest::create([
-            'request_number' => $requestNumber,
-            'citizen_user_id' => Auth::id(),
-            'office_id' => $targetOfficeId,
-            'service_id' => $service->id,
-            'assigned_to_user_id' => null,
-            'status' => 'pending',
-            'description' => $wizard['description'],
-            'qr_code' => $qrCode,
-            'submitted_at' => now(),
-        ]);
-    }
-
-    private function createInitialStatusHistory(ServiceRequest $serviceRequest): void
-    {
-        RequestStatusHistory::create([
-            'request_id' => $serviceRequest->id,
-            'old_status' => 'pending',
-            'new_status' => 'pending',
-            'changed_by_user_id' => Auth::id(),
-            'note' => 'Request submitted by citizen.',
-            'changed_at' => now(),
-        ]);
-    }
-
-    private function saveUploadedDocuments(ServiceRequest $serviceRequest, array $wizard): void
-    {
-        foreach (($wizard['documents'] ?? []) as $documentData) {
-            RequestDocument::create([
-                'request_id' => $serviceRequest->id,
-                'required_document_id' => $documentData['required_document_id'],
-                'uploaded_by_user_id' => Auth::id(),
-                'file_name' => $documentData['file_name'],
-                'file_path' => $documentData['file_path'],
-                'file_type' => $documentData['file_type'],
-                'document_role' => 'citizen_upload',
-                'uploaded_at' => now(),
-            ]);
-        }
-    }
-
-    private function bookAppointment(ServiceRequest $serviceRequest, Service $service, int $slotId): void
-    {
-        $slot = $this->findAvailableSlotForBooking($service, $slotId);
-
-        if (! $slot) {
-            throw new \Exception('The selected appointment slot is no longer available.');
-        }
-
-        if ($this->getRemainingCapacity($slot) <= 0) {
-            throw new \Exception('The selected appointment slot is full.');
-        }
-
-        Appointment::create([
-            'request_id' => $serviceRequest->id,
-            'citizen_user_id' => Auth::id(),
-            'office_id' => $slot->office_id,
-            'slot_id' => $slot->id,
-            'status' => 'scheduled',
-            'notes' => 'Appointment selected during request submission.',
-        ]);
-
-        $bookedCount = $slot->appointments()
-            ->whereIn('status', ['scheduled', 'completed'])
-            ->count();
-
-        if ($bookedCount >= (int) $slot->capacity) {
-            $slot->update([
-                'status' => 'full',
-            ]);
-        }
-    }
-
-    private function findAvailableSlotForBooking(Service $service, int $slotId)
-    {
-        $matchingServiceIds = $this->getMatchingServiceIds($service);
-
-        return AppointmentSlot::withCount([
-                'appointments as booked_appointments_count' => function ($query) {
-                    $query->whereIn('status', ['scheduled', 'completed']);
-                },
-            ])
-            ->where('id', $slotId)
-            ->whereIn('service_id', $matchingServiceIds)
-            ->where('office_id', $service->office_id)
-            ->where('status', 'available')
-            ->lockForUpdate()
-            ->first();
-    }
-
-    private function createPaymentIfNeeded(ServiceRequest $serviceRequest, Service $service, array $wizard): ?Payment
-    {
-        if ((float) $service->price <= 0) {
-            return null;
-        }
-
-        $paymentMethod = $wizard['payment_method'] ?? 'cash';
-
-        return Payment::create([
-            'request_id' => $serviceRequest->id,
-            'user_id' => Auth::id(),
-            'amount' => $service->price,
-            'currency' => strtoupper(config('services.stripe.currency', 'usd')),
-            'payment_method' => $paymentMethod,
-            'provider' => $paymentMethod === 'card' ? 'stripe' : null,
-            'status' => 'pending',
-            'transaction_reference' => null,
-            'paid_at' => null,
-        ]);
-    }
-
-    private function notifyCitizenAndStaff(ServiceRequest $serviceRequest, Service $service, int $targetOfficeId): void
-    {
-        Notification::create([
-            'user_id' => Auth::id(),
-            'type' => 'request_submitted',
-            'title' => 'Request submitted successfully',
-            'message' => 'Your request ' . $serviceRequest->request_number . ' was submitted successfully.',
-            'channel' => 'system',
-            'is_read' => false,
-        ]);
-
-        $staffUsers = OfficeStaff::where('office_id', $targetOfficeId)
-            ->where('status', 'active')
-            ->get();
-
-        foreach ($staffUsers as $staff) {
-            Notification::create([
-                'user_id' => $staff->user_id,
-                'type' => 'new_request',
-                'title' => 'New service request',
-                'message' => 'A new request ' . $serviceRequest->request_number . ' was submitted for ' . $service->name . '.',
-                'channel' => 'system',
-                'is_read' => false,
-            ]);
-        }
-    }
-
     private function getWizardOrRedirect()
     {
         $wizard = session($this->sessionKey);
@@ -711,9 +616,7 @@ class CitizenServiceRequestController extends Controller
         if (! $wizard || empty($wizard['service_id'])) {
             return redirect()
                 ->route('discovery.index')
-                ->withErrors([
-                    'request' => 'Please choose a service before starting a request.',
-                ]);
+                ->withErrors(['request' => 'Please choose a service before starting a request.']);
         }
 
         return $wizard;

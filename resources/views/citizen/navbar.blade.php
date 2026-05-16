@@ -15,12 +15,6 @@
 
     @if($isVerifiedCitizen)
         <a href="{{ route('citizen.requests.index') }}">My Requests</a>
-
-        @if(Route::has('citizen.payments.index'))
-            <a href="{{ route('citizen.payments.index') }}">Payment History</a>
-        @endif
-
-        <a href="{{ route('citizen.feedback.index') }}">My Feedback</a>
     @else
         <a href="{{ route('citizen.profile.edit') }}">Verify Profile</a>
     @endif

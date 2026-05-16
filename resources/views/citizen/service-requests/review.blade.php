@@ -88,10 +88,7 @@
 
             @if($service->requires_appointment)
                 @if($slot)
-                    <p>
-                        <strong>Appointment:</strong>
-                        {{ $slot->slot_date }} from {{ substr($slot->start_time, 0, 5) }} to {{ substr($slot->end_time, 0, 5) }}
-                    </p>
+                    <p><strong>Appointment:</strong> {{ $slot->slot_date }} from {{ substr($slot->start_time, 0, 5) }} to {{ substr($slot->end_time, 0, 5) }}</p>
                 @else
                     <p><strong>Appointment:</strong> Not selected</p>
                 @endif
@@ -101,23 +98,6 @@
 
             @if((float) $service->price > 0)
                 <p><strong>Payment Method:</strong> {{ strtoupper($wizard['payment_method'] ?? 'Not selected') }}</p>
-
-                @if(($wizard['payment_method'] ?? null) === 'card')
-                    <p>
-                        <strong>Payment Note:</strong>
-                        After submitting, you will be redirected to Stripe Checkout to complete your card payment.
-                    </p>
-                @elseif(($wizard['payment_method'] ?? null) === 'cash')
-                    <p>
-                        <strong>Payment Note:</strong>
-                        Your request will be submitted and payment will remain pending until you pay at the office.
-                    </p>
-                @elseif(($wizard['payment_method'] ?? null) === 'crypto')
-                    <p>
-                        <strong>Payment Note:</strong>
-                        Your request will be submitted and cryptocurrency payment will be handled separately.
-                    </p>
-                @endif
             @else
                 <p><strong>Payment:</strong> Free service</p>
             @endif
@@ -127,27 +107,13 @@
     <div class="panel">
         <h2>Submit Request</h2>
 
-        @if(($wizard['payment_method'] ?? null) === 'card')
-            <p>
-                Please review all information before submitting.
-                After submission, you will be redirected to Stripe Checkout to complete your card payment.
-            </p>
-        @else
-            <p>
-                Please review all information before submitting.
-                After submission, the office will receive your request.
-            </p>
-        @endif
+        <p>Please review all information before submitting. After submission, the office will receive your request.</p>
 
         <form method="POST" action="{{ route('citizen.service-requests.submit') }}">
             @csrf
 
             <button type="submit" class="button">
-                @if(($wizard['payment_method'] ?? null) === 'card')
-                    Submit Request and Pay by Card
-                @else
-                    Submit Request
-                @endif
+                Submit Request
             </button>
         </form>
     </div>

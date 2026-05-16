@@ -17,30 +17,19 @@ class CitizenRequestTrackingController extends Controller
         $statuses = ['pending', 'approved', 'rejected', 'in_progress', 'completed'];
 
         $statusFilter = $request->query('status');
-        $search = trim($request->query('search', ''));
+        $search = trim((string) $request->query('search'));
 
-        $totalRequests = ServiceRequest::where('citizen_user_id', Auth::id())->count();
+        $baseQuery = ServiceRequest::where('citizen_user_id', Auth::id());
 
-        $pendingRequests = ServiceRequest::where('citizen_user_id', Auth::id())
-            ->where('status', 'pending')
-            ->count();
+        $totalRequests = (clone $baseQuery)->count();
+        $pendingRequests = (clone $baseQuery)->where('status', 'pending')->count();
+        $inProgressRequests = (clone $baseQuery)->where('status', 'in_progress')->count();
+        $completedRequests = (clone $baseQuery)->where('status', 'completed')->count();
 
-        $inProgressRequests = ServiceRequest::where('citizen_user_id', Auth::id())
-            ->where('status', 'in_progress')
-            ->count();
-
-        $completedRequests = ServiceRequest::where('citizen_user_id', Auth::id())
-            ->where('status', 'completed')
-            ->count();
-
-      
-
-        $query = ServiceRequest::with([
+        $requests = ServiceRequest::with([
                 'office.municipality',
                 'service',
                 'assignedTo',
-                'feedback',
-                'appointments',
             ])
             ->withCount([
                 'documents',
@@ -48,49 +37,42 @@ class CitizenRequestTrackingController extends Controller
                 'appointments',
                 'statusHistory as status_updates_count',
             ])
-            ->where('citizen_user_id', Auth::id());
-
-        
-
-        if ($statusFilter && in_array($statusFilter, $statuses)) {
-            $query->where('status', $statusFilter);
-        }
-
-      
-        if ($search !== '') {
-            $query->where(function ($searchQuery) use ($search) {
-                $searchQuery->where('request_number', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%')
-                    ->orWhereHas('service', function ($serviceQuery) use ($search) {
-                        $serviceQuery->where('name', 'like', '%' . $search . '%');
-                    })
-                    ->orWhereHas('office', function ($officeQuery) use ($search) {
-                        $officeQuery->where('name', 'like', '%' . $search . '%');
-                    });
-            });
-        }
-
-        $requests = $query
+            ->where('citizen_user_id', Auth::id())
+            ->when($statusFilter, function ($query) use ($statusFilter, $statuses) {
+                if (in_array($statusFilter, $statuses, true)) {
+                    $query->where('status', $statusFilter);
+                }
+            })
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('request_number', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('service', function ($serviceQuery) use ($search) {
+                            $serviceQuery->where('name', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('office', function ($officeQuery) use ($search) {
+                            $officeQuery->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->latest('submitted_at')
             ->latest()
             ->get();
 
-        return view('citizen.requests.index', [
-            'requests' => $requests,
-            'statuses' => $statuses,
-            'statusFilter' => $statusFilter,
-            'search' => $search,
-            'totalRequests' => $totalRequests,
-            'pendingRequests' => $pendingRequests,
-            'inProgressRequests' => $inProgressRequests,
-            'completedRequests' => $completedRequests,
-        ]);
+        return view('citizen.requests.index', compact(
+            'requests',
+            'statuses',
+            'statusFilter',
+            'search',
+            'totalRequests',
+            'pendingRequests',
+            'inProgressRequests',
+            'completedRequests'
+        ));
     }
 
     public function show(string $id)
     {
-     
-
         $serviceRequest = ServiceRequest::with([
                 'citizen',
                 'office.municipality',
@@ -104,20 +86,15 @@ class CitizenRequestTrackingController extends Controller
                 'payments.transactions',
                 'appointments.slot.service',
                 'generatedDocuments',
-                'feedback.office',
             ])
             ->where('citizen_user_id', Auth::id())
             ->findOrFail($id);
 
-        return view('citizen.requests.show', [
-            'serviceRequest' => $serviceRequest,
-        ]);
+        return view('citizen.requests.show', compact('serviceRequest'));
     }
 
     public function downloadDocument(string $id, string $documentId)
     {
-        
-
         $serviceRequest = ServiceRequest::where('citizen_user_id', Auth::id())
             ->findOrFail($id);
 
@@ -130,15 +107,14 @@ class CitizenRequestTrackingController extends Controller
             ]);
         }
 
-        $fullPath = storage_path('app/public/' . $document->file_path);
-
-        return response()->download($fullPath, $document->file_name);
+        return response()->download(
+            storage_path('app/public/' . $document->file_path),
+            $document->file_name
+        );
     }
 
     public function downloadGeneratedDocument(string $id, string $documentId)
     {
-        
-
         $serviceRequest = ServiceRequest::where('citizen_user_id', Auth::id())
             ->findOrFail($id);
 
@@ -151,8 +127,6 @@ class CitizenRequestTrackingController extends Controller
             ]);
         }
 
-        $fullPath = storage_path('app/public/' . $document->file_path);
-
-        return response()->download($fullPath);
+        return response()->download(storage_path('app/public/' . $document->file_path));
     }
 }
