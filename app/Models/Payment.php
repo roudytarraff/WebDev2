@@ -21,6 +21,11 @@ class Payment extends Model
         'paid_at'
     ];
 
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'paid_at' => 'datetime',
+    ];
+
     public function request()
     {
         return $this->belongsTo(ServiceRequest::class, 'request_id');
@@ -34,5 +39,12 @@ class Payment extends Model
     public function transactions()
     {
         return $this->hasMany(PaymentTransaction::class, 'payment_id');
+    }
+
+    public function successfulTransaction()
+    {
+        return $this->hasOne(PaymentTransaction::class, 'payment_id')
+            ->where('status', 'success')
+            ->latest('processed_at');
     }
 }

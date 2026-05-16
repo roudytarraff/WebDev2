@@ -18,6 +18,10 @@ class PaymentTransaction extends Model
         'processed_at'
     ];
 
+    protected $casts = [
+        'processed_at' => 'datetime',
+    ];
+
     public function payment()
     {
         return $this->belongsTo(Payment::class);
